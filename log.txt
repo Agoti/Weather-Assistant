@@ -1,0 +1,6 @@
+Keep a log to record my progress.
+
+12.5
+Add error handling.
+Add version control.
+Issue: The error handling is simple and not very robust. 

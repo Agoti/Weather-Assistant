@@ -42,9 +42,6 @@ class GetWeather(object):
         # decode the response
         data = response.json()
         data = self.format_current_weather(data)
-        # check if the request is successful
-        if data[0] != 200:
-            return None
         return data 
 
     def get_forecast_weather(self, city_name: str) -> tuple:
@@ -65,9 +62,6 @@ class GetWeather(object):
         # decode the response
         data = response.json()
         data = self.format_forecast_weather(data)
-        # check if the request is successful
-        if data[0] != 200:
-            return None
         return data
     
     def format_current_weather(self, data: dict) -> tuple:
@@ -113,6 +107,8 @@ class GetWeather(object):
         result = [None, None, None]
         # the first element is the get status
         result[0] = int(data['cod'])
+        if result[0] != 200:
+            return tuple(result)
         # the second element is the city information
         result[1] = {}
         result[1]['name'] = data['name']

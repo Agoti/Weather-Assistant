@@ -46,15 +46,17 @@ class Interface(object):
         ## ----- Master ----- ##
         self.master = master
         self.master.title("Weather Assistant")
-        self.master.geometry("400x300")
+        self.master.geometry("800x600")
         self.master.resizable(False, False)
+        self.master.bind('<Button-1>', self.on_background_click)
+        self.master.bind('<Return>', lambda event: self.add_city(self.city_entry.get()))
         
         self.weather_assistant = WeatherAssistant()
 
         ## ----- Background ----- ##
         # The background is a frame
         self.background_frame = tk.Frame(master)
-        self.background_frame.bind('<Button-1>', self.on_background_click)
+        self.background_frame.pack(fill=tk.BOTH, expand=True)
         
         ## ----- Settings ----- ##
         self.settings = {
@@ -65,8 +67,8 @@ class Interface(object):
         # Search bar and City list on the left
         self.city_entry = tk.Entry(self.background_frame)
         self.city_entry.grid(row=0, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
-        # The add city button is used for testing, 
-        # it will be removed after the prediction function is implemented
+        # # The add city button is used for testing, 
+        # # it will be removed after the prediction function is implemented
         # self.add_city_button = tk.Button(master, text="Add City", command=self.add_city)
         # self.add_city_button.grid(row=0, column=1, sticky=tk.N+tk.S+tk.W+tk.E)
         # When the searchbox is selected, the city list is disabled
@@ -76,7 +78,6 @@ class Interface(object):
         self.city_entry.bind('<FocusIn>', self.searchbox_selected)
         self.city_entry.bind('<FocusOut>', self.searchbox_unselected)
         # When there's text in searchbox, below the searchbox are prediction cities
-        # TODO: prediction function
         # The city listbox
         self.city_listbox = tk.Listbox(self.background_frame, selectmode=tk.SINGLE)
         self.city_listbox.bind('<Double-Button-1>', self.city_listbox_click)
@@ -106,8 +107,7 @@ class Interface(object):
         self.humidity_wind_pressure_clouds_label.grid(row=4, column=1, sticky=tk.N+tk.S+tk.W+tk.E)
 
         # Finalizing the layout
-        self.background_frame.pack()
-        self.update_weather()
+        self.update()
 
     ## ----- Callback functions ----- ##
     def on_background_click(self, event):
@@ -147,35 +147,62 @@ class Interface(object):
     ## ----- Functions ----- ##
 
     def add_city(self, city):
-        if city:
-            self.weather_assistant.add_city(city)
-            messagebox.showinfo("Success", f"{city} added to the city list.")
-        else:
-            messagebox.showwarning("Warning", "Please enter a city name.")
-        self.update_weather()
+        res = self.weather_assistant.add_city(city)
+        if res == "Success":
+            self.update()
+            messagebox.showinfo("Success", "City added")
+        else: 
+            messagebox.showerror("Error", res)
 
     def remove_city(self):
-        self.weather_assistant.remove_city(self.weather_assistant.current_city)
-        self.update_weather()
+        res = self.weather_assistant.remove_city(self.weather_assistant.current_city)
+        if res == "Success":
+            self.update()
+            messagebox.showinfo("Success", "City removed")
+        else:
+            messagebox.showerror("Error", res)
 
     def shift_city(self, city):
         city = self.city_listbox.get(self.city_listbox.curselection())
-        self.weather_assistant.shift_city(city)
-        self.update_weather()
+        res = self.weather_assistant.shift_city(city)
+        if res == "Success":
+            self.update()
+        else:
+            messagebox.showerror("Error", res)
 
     ## ----- Updating Functions ----- ##
 
+    def update(self):
+        self.update_weather()
+        self.update_city_listbox()
+
     def update_weather(self):
-        # Update city list
-        self.city_listbox.delete(0, tk.END)
-        for city in self.weather_assistant.cities:
-            self.city_listbox.insert(tk.END, city)
         # Update current weather
-        self.city_name_label.config(text=self.weather_assistant.current_city)
-        self.current_temperature_label.config(text=str(int(self.weather_assistant.current_weather[2]['main']['temp'] - 273.15)))
-        self.max_min_temperature_label.config(text=str(int(self.weather_assistant.current_weather[2]['main']['temp_max'] - 273.15)) + "/" + str(int(self.weather_assistant.current_weather[2]['main']['temp_min'] - 273.15)))
-        self.current_weather_label.config(text=self.weather_assistant.current_weather[2]['weather']['main'])
-        self.humidity_wind_pressure_clouds_label.config(text=str(int(self.weather_assistant.current_weather[2]['main']['humidity'])) + "% | " + str(int(self.weather_assistant.current_weather[2]['wind']['speed'])) + "m/s | " + str(int(self.weather_assistant.current_weather[2]['main']['pressure'])) + "hPa | " + str(int(self.weather_assistant.current_weather[2]['clouds'])) + "%")
+        if self.weather_assistant.current_weather == None:
+            self.clear_all_labels()
+        elif self.weather_assistant.current_weather[0] == 200:
+            self.clear_all_labels()
+            self.city_name_label.config(text=self.weather_assistant.current_city)
+            self.current_temperature_label.config(text=str(int(self.weather_assistant.current_weather[2]['main']['temp'] - 273.15)))
+            self.max_min_temperature_label.config(text=str(int(self.weather_assistant.current_weather[2]['main']['temp_max'] - 273.15)) + "/" + str(int(self.weather_assistant.current_weather[2]['main']['temp_min'] - 273.15)))
+            self.current_weather_label.config(text=self.weather_assistant.current_weather[2]['weather']['main'])
+            self.humidity_wind_pressure_clouds_label.config(text=str(int(self.weather_assistant.current_weather[2]['main']['humidity'])) + "% | " + str(int(self.weather_assistant.current_weather[2]['wind']['speed'])) + "m/s | " + str(int(self.weather_assistant.current_weather[2]['main']['pressure'])) + "hPa | " + str(int(self.weather_assistant.current_weather[2]['clouds'])) + "%")
+        elif self.weather_assistant.current_weather[0] == 404:
+            self.clear_all_labels()
+            self.current_weather_label.config(text="City not found")
+        elif self.weather_assistant.current_weather[0] == 401:
+            self.clear_all_labels()
+            self.current_weather_label.config(text="Invalid API key")
+        else:
+            self.clear_all_labels()
+            self.current_weather_label.config(text="Unknown error")
+    
+    def clear_all_labels(self):
+        self.city_name_label.config(text="")
+        self.current_temperature_label.config(text="")
+        self.max_min_temperature_label.config(text="")
+        self.current_weather_label.config(text="")
+        self.humidity_wind_pressure_clouds_label.config(text="")
     
     def update_city_listbox(self, *args):
         if self.city_listbox_status == "predict_list":

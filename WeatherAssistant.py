@@ -30,15 +30,18 @@ class WeatherAssistant(object):
         """
         Load cities from city file
         """
-        cities = []
-        current_city = None
-        with open(WeatherAssistant.CITIES_FILE, 'r', encoding='utf-8') as f:
-            for line in f:
-                city = line.strip()
-                cities.append(city)
-                if current_city is None:
-                    current_city = city
-        return cities, current_city
+        try:
+            cities = []
+            current_city = None
+            with open(WeatherAssistant.CITIES_FILE, 'r', encoding='utf-8') as f:
+                for line in f:
+                    city = line.strip()
+                    cities.append(city)
+                    if current_city is None:
+                        current_city = city
+            return cities, current_city
+        except:
+            return [], None
 
     def load_all_city(self) -> list:
         """
@@ -52,88 +55,126 @@ class WeatherAssistant(object):
         - ENInfo_dict: English infomation of the city or state
             - Refer to CNInfo_dict
         """
-        city_list = []
-        # keep track of the state
-        state = set()
-        with open(WeatherAssistant.ALL_CITY, 'r', encoding='utf-8') as f:
-            # skip the first line
-            next(f)
-            # Data come this order: EnglishName,
-            # ChineseName,StateName,StateNameEn,CountryName,CountryNameEn
-            # store the data in a 3-tuple: (EnglishName, CNInfo_dict, ENInfo_dict)
-            for line in f:
-                line = line.strip()
-                line = line.split(',')
-                temp = (line[1], {
-                    'Name': line[0],
-                    'StateName': line[2],
-                    'CountryName': line[4]
-                }, {
-                    'Name': line[1],
-                    'StateName': line[3],
-                    'CountryName': line[5]
-                })
-                # add state to city list
-                if temp[1]['StateName'] and temp[1]['StateName'] not in state:
-                    state.add(temp[1]['StateName'])
-                    temp_province = (temp[1]['StateName'], {
-                        'Name': temp[1]['StateName'],
-                        'CountryName': temp[1]['CountryName']
+        try:
+            city_list = []
+            # keep track of the state
+            state = set()
+            with open(WeatherAssistant.ALL_CITY, 'r', encoding='utf-8') as f:
+                # skip the first line
+                next(f)
+                # Data come this order: EnglishName,
+                # ChineseName,StateName,StateNameEn,CountryName,CountryNameEn
+                # store the data in a 3-tuple: (EnglishName, CNInfo_dict, ENInfo_dict)
+                for line in f:
+                    line = line.strip()
+                    line = line.split(',')
+                    temp = (line[1], {
+                        'Name': line[0],
+                        'StateName': line[2],
+                        'CountryName': line[4]
                     }, {
-                        'Name': temp[2]['StateName'],
-                        'CountryName': temp[2]['CountryName']
+                        'Name': line[1],
+                        'StateName': line[3],
+                        'CountryName': line[5]
                     })
-                    city_list.append(temp_province)
-                
-                city_list.append(temp)
+                    # add state to city list
+                    if temp[1]['StateName'] and temp[1]['StateName'] not in state:
+                        state.add(temp[1]['StateName'])
+                        temp_province = (temp[1]['StateName'], {
+                            'Name': temp[1]['StateName'],
+                            'CountryName': temp[1]['CountryName']
+                        }, {
+                            'Name': temp[2]['StateName'],
+                            'CountryName': temp[2]['CountryName']
+                        })
+                        city_list.append(temp_province)
+                    
+                    city_list.append(temp)
+            return city_list
 
-        return city_list
+        except:
+            return []
 
     def save_cities(self):
         """
         Save cities to city file
         """
-        with open(WeatherAssistant.CITIES_FILE, 'w') as f:
-            for city in self.cities:
-                f.write(city + '\n')
+        try:
+            with open(WeatherAssistant.CITIES_FILE, 'w') as f:
+                for city in self.cities:
+                    f.write(city + '\n')
+        except:
+            pass
     
     def add_city(self, city_name: str):
         """
         Add a city to city list
         """
-        if city_name in self.cities:
-            raise Exception('City already exists')
-        self.cities.append(city_name)
-        self.shift_city(city_name)
-        self.save_cities()
+        try:
+            if city_name not in [city[0] for city in self.all_city_list]:
+                return "Unknown city"
+            if city_name in self.cities:
+                return "City already in city list"
+            self.cities.append(city_name)
+            res = self.shift_city(city_name)
+            if res != "Success":
+                self.cities.pop()
+                return res
+            self.save_cities()
+            return "Success"
+        except:
+            self.cities.pop()
+            return "Unknown error"
 
     def remove_city(self, city_name: str):
         """
         Remove a city from city list
         """
-        idx = self.cities.index(city_name)
-        if idx != -1:
-            self.cities.remove(city_name)
-            if len(self.cities) == 0:
-                self.current_city = None
-            else:
-                self.shift_city(self.cities[idx % len(self.cities)])
-        self.save_cities()
+        try:
+            idx = self.cities.index(city_name)
+            if idx != -1:
+                self.cities.remove(city_name)
+                if len(self.cities) == 0:
+                    self.current_city = None
+                    self.update_weather()
+                else:
+                    res = self.shift_city(self.cities[idx % len(self.cities)])
+                    if res != "Success":
+                        self.cities.append(city_name)
+                        return res
+            self.save_cities()
+            return "Success"
+        except:
+            return "Unknown error"
 
     def shift_city(self, city_name: str):
         """
         Shift current city
         """
-        self.current_city = city_name
-        self.save_cities()
-        self.update_weather()
+        try:
+            if city_name not in self.cities:
+                return "City not in city list"
+            self.current_city = city_name
+            self.save_cities()
+            self.update_weather()
+            return "Success"
+        except:
+            return "Unknown error"
 
     def update_weather(self):
         """
         Update current and forecast weather
         """
-        self.current_weather = self.GetWeather.get_current_weather(self.current_city)
-        self.forecast_weather = self.GetWeather.get_forecast_weather(self.current_city)
+        try:
+            if self.current_city is None:
+                self.current_weather = None
+                self.forecast_weather = None
+            else:
+                self.current_weather = self.GetWeather.get_current_weather(self.current_city)
+                self.forecast_weather = self.GetWeather.get_forecast_weather(self.current_city)
+        except:
+            self.current_weather = None
+            self.forecast_weather = None
 
 
 if __name__ == '__main__':
