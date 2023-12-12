@@ -2,7 +2,7 @@
 # Description: Weather Assistant class to manage weather infomation
 #     This is the controller of the program
 # By Monster Kid
-from getWeather import *
+from GetWeather import *
 
 class WeatherAssistant(object):
     """
@@ -17,14 +17,32 @@ class WeatherAssistant(object):
     # the file to store city list
     CITIES_FILE = 'data/cities.txt' 
     ALL_CITY = 'data/all_city.csv'
+    EMPTY_WEATHER_DICT = {'now' : None, '7d' : None, '24h' : None, 'rain' : None, 'warning' : None, 'indices' : None,
+                      'air' : None, 'air_forecast' : None}
 
-    def __init__(self):
-        self.GetWeather = GetWeather()
-        self.current_weather = None
-        self.forecast_weather = None
+    def __init__(self, language='en'):
+        self.get_weather = GetWeather(language)
+        self.language = language
         self.cities, self.current_city = self.load_cities()
         self.all_city_list = self.load_all_city()
+        self.language = 'en'
+        self.weather = self.EMPTY_WEATHER_DICT
         self.update_weather()
+
+    def set_language(self, language: str):
+        """
+        Set language
+        """
+        try:
+            self.language = language
+            self.get_weather.set_language(language)
+            self.update_weather()
+            return "Success"
+        except ValueError as e:
+            return str(e)
+        except:
+            return "Unknown error"
+
     
     def load_cities(self) -> tuple:
         """
@@ -91,7 +109,6 @@ class WeatherAssistant(object):
                     
                     city_list.append(temp)
             return city_list
-
         except:
             return []
 
@@ -166,33 +183,38 @@ class WeatherAssistant(object):
         Update current and forecast weather
         """
         try:
+            self.weather = self.EMPTY_WEATHER_DICT
             if self.current_city is None:
-                self.current_weather = None
-                self.forecast_weather = None
-            else:
-                self.current_weather = self.GetWeather.get_current_weather(self.current_city)
-                self.forecast_weather = self.GetWeather.get_forecast_weather(self.current_city)
-        except:
-            self.current_weather = None
-            self.forecast_weather = None
-
+                # print("No city selected")
+                return
+            self.weather['now'] = self.get_weather.get_hf_current(self.current_city)
+            self.weather['7d'] = self.get_weather.get_hf_7days(self.current_city)
+            self.weather['24h'] = self.get_weather.get_hf_24hours(self.current_city)
+            self.weather['rain'] = self.get_weather.get_hf_rain(self.current_city)
+            self.weather['warning'] = self.get_weather.get_hf_warning(self.current_city)
+            self.weather['indices'] = self.get_weather.get_hf_indices(self.current_city)
+            self.weather['air'] = self.get_weather.get_hf_air(self.current_city)
+            self.weather['air_forecast'] = self.get_weather.get_hf_air_forecast(self.current_city)
+            # print("Update weather success")
+        except Exception as e:
+            # print(e)
+            # print("Update weather failed")
+            self.weather = self.EMPTY_WEATHER_DICT
 
 if __name__ == '__main__':
     
     def print_weather(wa):
-        if wa.current_weather is None:
+        if wa.weather['now'] is None:
             print('----------------------------------------')
             print('Current city:', wa.current_city)
             print('No weather infomation')
+            print(wa.weather)
             print('----------------------------------------')
             return
         print('----------------------------------------')
         print('Current city:', wa.current_city)
-        weather = wa.current_weather[2]['weather']['main']
-        main = wa.current_weather[2]['main']
-        print('Weather:', weather)
-        print(f'Temperature: {int(main["temp"] - 273.15)}')
-        print('Humidity:', main['humidity'])
+        print('Current weather:', wa.weather['now']['now']['text'])
+        print('Current temperature:', wa.weather['now']['now']['temp'])
         print('----------------------------------------')
 
     def print_city_list(wa):

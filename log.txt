@@ -4,3 +4,9 @@ Keep a log to record my progress.
 Add error handling.
 Add version control.
 Issue: The error handling is simple and not very robust. 
+
+12.9
+Adjust the GUI layout.
+Change weather API to Hefeng.
+Modify the code. Not finished yet.
+Doesn't commit.

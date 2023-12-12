@@ -30,14 +30,14 @@ from city_prediction import predict_city
 # [x] Interface Class, the view of the program
 # [x] Add city list, including a lot of cities in the world
 # [x] City prediction function, to predict the city name when user is typing
-# [] Version control, git
+# [x] Version control, git
 # [] Forecast weather, line chart
 # [] Settings and multilanguage
 # [] Icon and background color
 # [] Min max temperature(currently not correct)
 # [] Style and layout, font, color, etc. Window size, alignment, etc.
 # [] Unblock the interface, use multithreading and add a loading animation
-# [] Error handling, when the city is not found, etc.
+# [x] Error handling, when the city is not found, etc.
 ##########################################################################
 
 class Interface(object):
@@ -57,6 +57,16 @@ class Interface(object):
         # The background is a frame
         self.background_frame = tk.Frame(master)
         self.background_frame.pack(fill=tk.BOTH, expand=True)
+    
+        # Configure columns and rows
+        self.background_frame.columnconfigure(0, weight=1)
+        self.background_frame.columnconfigure(1, weight=2)
+        self.background_frame.columnconfigure(2, weight=1)
+        self.background_frame.rowconfigure(0, weight=1)
+        self.background_frame.rowconfigure(1, weight=2)
+        self.background_frame.rowconfigure(2, weight=2)
+        self.background_frame.rowconfigure(3, weight=2)
+        self.background_frame.rowconfigure(4, weight=2)
         
         ## ----- Settings ----- ##
         self.settings = {
@@ -151,6 +161,10 @@ class Interface(object):
         if res == "Success":
             self.update()
             messagebox.showinfo("Success", "City added")
+            # clear the searchbox
+            self.city_entry.delete(0, tk.END)
+            # remove focus from searchbox
+            self.master.focus()
         else: 
             messagebox.showerror("Error", res)
 
@@ -178,24 +192,18 @@ class Interface(object):
 
     def update_weather(self):
         # Update current weather
-        if self.weather_assistant.current_weather == None:
-            self.clear_all_labels()
-        elif self.weather_assistant.current_weather[0] == 200:
-            self.clear_all_labels()
-            self.city_name_label.config(text=self.weather_assistant.current_city)
-            self.current_temperature_label.config(text=str(int(self.weather_assistant.current_weather[2]['main']['temp'] - 273.15)))
-            self.max_min_temperature_label.config(text=str(int(self.weather_assistant.current_weather[2]['main']['temp_max'] - 273.15)) + "/" + str(int(self.weather_assistant.current_weather[2]['main']['temp_min'] - 273.15)))
-            self.current_weather_label.config(text=self.weather_assistant.current_weather[2]['weather']['main'])
-            self.humidity_wind_pressure_clouds_label.config(text=str(int(self.weather_assistant.current_weather[2]['main']['humidity'])) + "% | " + str(int(self.weather_assistant.current_weather[2]['wind']['speed'])) + "m/s | " + str(int(self.weather_assistant.current_weather[2]['main']['pressure'])) + "hPa | " + str(int(self.weather_assistant.current_weather[2]['clouds'])) + "%")
-        elif self.weather_assistant.current_weather[0] == 404:
-            self.clear_all_labels()
-            self.current_weather_label.config(text="City not found")
-        elif self.weather_assistant.current_weather[0] == 401:
-            self.clear_all_labels()
-            self.current_weather_label.config(text="Invalid API key")
-        else:
-            self.clear_all_labels()
-            self.current_weather_label.config(text="Unknown error")
+        self.clear_all_labels()
+        if self.weather_assistant.weather['now'] == None:
+            return
+        self.city_name_label.config(text=self.weather_assistant.current_city)
+        self.current_temperature_label.config(text=str(int(self.weather_assistant.weather['now']['now']['temp'])) + "°C")
+        self.max_min_temperature_label.config(text="###")
+        self.current_weather_label.config(text=self.weather_assistant.weather['now']['now']['text'])
+        self.humidity_wind_pressure_clouds_label.config(text=str(int(self.weather_assistant.weather['now']['now']['humidity']))\
+                                                                + "% | " + str(int(self.weather_assistant.weather['now']['now']['windSpeed']))\
+                                                                + "m/s | " + str(int(self.weather_assistant.weather['now']['now']['pressure']))\
+                                                                + "hPa | " + str(int(self.weather_assistant.weather['now']['now']['cloud']))\
+                                                                + "%")
     
     def clear_all_labels(self):
         self.city_name_label.config(text="")
