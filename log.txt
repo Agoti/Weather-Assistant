@@ -15,3 +15,11 @@ Doesn't commit.
 Add serial pages. Add line charts.
 What to do next: layout, layout, layout.
 Commit after change API.
+
+12.19
+The teacher recommend me to use place layout.
+It is a good idea.
+I completed the warning, details pages.
+What to do next: min/max temp, update, language.
+Good luck and good night.
+Commit msg: Add warning, details pages.

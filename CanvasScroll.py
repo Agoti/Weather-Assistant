@@ -1,23 +1,28 @@
 import tkinter as tk
 
 def on_scroll(*args):
-    canvas.yview(*args)
+    canvas.xview(*args)
 
 root = tk.Tk()
-root.title("Scrollbar with Labels")
+root.title("Scrollable Canvas Example")
 
-# 创建带有垂直滚动条的Canvas
-canvas = tk.Canvas(root, scrollregion=(0, 0, 100, 300), width=200, height=150)
-canvas.pack(side=tk.LEFT, fill=tk.Y)
+# 创建Canvas
+canvas = tk.Canvas(root, width=300, height=200, bg="white")
+canvas.pack(expand=True, fill="both")
 
-# 创建垂直滚动条并绑定到Canvas
-scrollbar = tk.Scrollbar(root, command=on_scroll)
-scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-canvas.config(yscrollcommand=scrollbar.set)
+# 创建一个Frame，宽度为canvas的两倍
+frame_width = 600
+frame = tk.Frame(canvas, width=frame_width, height=200, bg="lightblue")
+canvas.create_window((0, 0), window=frame, anchor="nw")
 
-# 添加一些标签到Canvas
-for i in range(20):
-    label = tk.Label(canvas, text=f"Label {i}")
-    canvas.create_window(50, i * 15, anchor=tk.W, window=label)
+# 创建水平滑动条
+scrollbar = tk.Scrollbar(root, orient="horizontal", command=on_scroll)
+scrollbar.pack(fill="x")
+
+# 设置Canvas与滑动条的关联
+canvas.configure(xscrollcommand=scrollbar.set)
+
+# 配置Canvas的可滚动范围
+canvas.config(scrollregion=canvas.bbox("all"))
 
 root.mainloop()

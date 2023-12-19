@@ -32,12 +32,12 @@ from SerialPages import *
 # [x] Add city list, including a lot of cities in the world
 # [x] City prediction function, to predict the city name when user is typing
 # [x] Version control, git
-# [] Forecast weather, line chart
+# [x] Forecast weather, line chart
 # [] Settings and multilanguage
 # [] Icon and background color
 # [] Min max temperature(currently not correct)
-# [] Style and layout, font, color, etc. Window size, alignment, etc.
-# [] Unblock the interface, use multithreading and add a loading animation
+# [x] Style and layout, font, color, etc. Window size, alignment, etc.
+# [] Do not block the interface. Use multithreading and add a loading animation
 # [x] Error handling, when the city is not found, etc.
 ##########################################################################
 
@@ -55,12 +55,14 @@ class Interface(object):
         ## ----- Master ----- ##
         self.master = master
         self.master.title("Weather Assistant")
-        self.master.geometry("1200x800")
+        self.width = 800
+        self.height = 600
+        self.master.geometry("{}x{}".format(self.width, self.height))
         self.master.resizable(False, False)
         self.master.bind('<Button-1>', self.on_background_click)
         self.master.bind('<Return>', lambda event: self.add_city(self.city_entry.get()))
-        self.master.rowconfigure(0, weight=1)
         self.master.columnconfigure(0, weight=1)
+        self.master.rowconfigure(0, weight=1)
         
         ## ----- Menu ----- ##
         self.menu = tk.Menu(self.master)
@@ -86,21 +88,21 @@ class Interface(object):
         self.background_frame.grid(row=0, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
     
         # Configure columns and rows
-        self.background_frame.rowconfigure(0, weight=1)
-        self.background_frame.columnconfigure(0, weight=1)
-        self.background_frame.columnconfigure(1, weight=10)
+        self.left_frame_ratio = 1 / 6
+        self.right_frame_ratio = 1 - self.left_frame_ratio
         
         ## ----- Left side ----- ##
-        left_frame_style = ttk.Style()
-        left_frame_style.configure("LeftFrame.TFrame", background="red")
-        self.left_frame = ttk.Frame(self.background_frame, style="LeftFrame.TFrame")
-        self.left_frame.grid(row=0, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
+        self.left_frame = ttk.Frame(self.background_frame)
+        # Use place layout manager to place the left frame
+        self.left_frame.place(relx=0, rely=0, relwidth=self.left_frame_ratio, relheight=1)
         self.left_frame.columnconfigure(0, weight=1)
-        self.left_frame.rowconfigure(0, weight=1)
-        self.left_frame.rowconfigure(1, weight=10)
+        self.left_frame.rowconfigure(0, weight=0)
+        self.left_frame.rowconfigure(1, weight=1)
         # Search bar and City list on the left
-        self.city_entry = tk.Entry(self.left_frame)
-        self.city_entry.grid(row=0, column=0, sticky=tk.W+tk.E)
+        # Do not use Helvetica font, use more common font
+        # Ok I give in, use Helvetica font
+        self.city_entry = tk.Entry(self.left_frame, font=("Helvetica", 16))
+        self.city_entry.grid(row=0, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
         # When the searchbox is selected, the city list is disabled
         self.city_entry_var = tk.StringVar()
         self.city_entry_var.trace_add('write', self.update_city_listbox)
@@ -117,43 +119,41 @@ class Interface(object):
         self.city_listbox.bind('<FocusOut>', self.city_listbox_unselected)
 
         ## ----- Right side ----- ##
-        right_frame_style = ttk.Style()
-        right_frame_style.configure("RightFrame.TFrame", background="blue")
-        self.right_frame = ttk.Frame(self.background_frame, style="RightFrame.TFrame")
-        self.right_frame.grid(row=0, column=1, sticky=tk.N+tk.S+tk.W+tk.E)
-        self.right_frame.columnconfigure(0, weight=1)
-        self.right_frame.rowconfigure(0, weight=1)
-        self.right_frame.rowconfigure(1, weight=1)
-        self.right_frame.rowconfigure(2, weight=1)
-        self.right_frame.rowconfigure(3, weight=1)
-        self.right_frame.rowconfigure(4, weight=1)
-        self.right_frame.rowconfigure(5, weight=10)
-        self.right_frame.rowconfigure(6, weight=10)
+        self.right_frame = ttk.Frame(self.background_frame)
+        # self.right_frame.grid(row=0, column=1, sticky=tk.N+tk.S+tk.W+tk.E)
+        self.right_frame.place(relx=self.left_frame_ratio, rely=0, relwidth=self.right_frame_ratio, relheight=1)
+        # PLACE all the widgets in the right frame
+        self.rf_weights = [1, 2, 1, 1, 1, 5, 5]
+        self.rf_ratios = [weight / sum(self.rf_weights) for weight in self.rf_weights]
         # City name and delete city button
         self.city_name_label = tk.Label(self.right_frame, text=self.weather_assistant.current_city)
-        self.city_name_label.grid(row=0, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
+        self.city_name_label.place(relx=0, rely=0, relwidth=1, relheight=self.rf_ratios[0])
         # Current Temperature
         # Style: Big font
         self.current_temperature_label = tk.Label(self.right_frame, text="0", font=("Helvetica", 48))
-        self.current_temperature_label.grid(row=1, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
+        self.current_temperature_label.place(relx=0, rely=self.rf_ratios[0], relwidth=1, relheight=self.rf_ratios[1])
         # Max / Min Temperature
         self.max_min_temperature_label = tk.Label(self.right_frame, text="0/0")
-        self.max_min_temperature_label.grid(row=2, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
+        self.max_min_temperature_label.place(relx=0, rely=self.rf_ratios[0]+self.rf_ratios[1], relwidth=1, relheight=self.rf_ratios[2])
         # Current Weather
         self.current_weather_label = tk.Label(self.right_frame, text="Weather")
-        self.current_weather_label.grid(row=3, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
+        self.current_weather_label.place(relx=0, rely=self.rf_ratios[0]+self.rf_ratios[1]+self.rf_ratios[2], relwidth=1, relheight=self.rf_ratios[3])
         # Warning scrollbox
-        self.warning_label = tk.Label(self.right_frame, text="Warning")
-        self.warning_label.grid(row=4, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
+        self.warning_scrollbox = SerialDisplay(self.right_frame)
+        self.warning_scrollbox.place(relx=0, rely=self.rf_ratios[0]+self.rf_ratios[1]+self.rf_ratios[2]+self.rf_ratios[3], relwidth=1, relheight=self.rf_ratios[4])
         # Weather scrollbox 
         self.weather_scrollbox = SerialDisplay(self.right_frame)
         self.now_weather_page = NowWeatherPage(self.weather_scrollbox)
-        self.weather_scrollbox.add_page(self.now_weather_page)
-        self.wind_page = WindPage(self.weather_scrollbox)
-        self.weather_scrollbox.add_page(self.wind_page)
+        self.air_page = AirPage(self.weather_scrollbox)
         self.index_page = IndexPage(self.weather_scrollbox)
+        self.sun_moon_page = SunMoonPage(self.weather_scrollbox)
+        self.wind_page = WindPage(self.weather_scrollbox)
+        self.weather_scrollbox.add_page(self.now_weather_page)
+        self.weather_scrollbox.add_page(self.air_page)
         self.weather_scrollbox.add_page(self.index_page)
-        self.weather_scrollbox.grid(row=5, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
+        self.weather_scrollbox.add_page(self.sun_moon_page)
+        self.weather_scrollbox.add_page(self.wind_page)
+        self.weather_scrollbox.place(relx=0, rely=self.rf_ratios[0]+self.rf_ratios[1]+self.rf_ratios[2]+self.rf_ratios[3]+self.rf_ratios[4], relwidth=1, relheight=self.rf_ratios[5])
         # Chart scrollbox
         self.chart_scrollbox = SerialDisplay(self.right_frame)
         self.chart_24hours_page = Chart24HoursPage(self.chart_scrollbox)
@@ -162,10 +162,11 @@ class Interface(object):
         self.chart_scrollbox.add_page(self.chart_24hours_page)
         self.chart_scrollbox.add_page(self.chart_7days_page)
         self.chart_scrollbox.add_page(self.chart_rain_page)
-        self.chart_scrollbox.grid(row=6, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
+        self.chart_scrollbox.place(relx=0, rely=self.rf_ratios[0]+self.rf_ratios[1]+self.rf_ratios[2]+self.rf_ratios[3]+self.rf_ratios[4]+self.rf_ratios[5], relwidth=1, relheight=self.rf_ratios[6])
 
         # Finalizing the layout
         self.master.focus()
+        self.master.update()
         self.update()
 
     ## ----- Callback functions ----- ##
@@ -241,6 +242,7 @@ class Interface(object):
         self.update_city_listbox()
         self.update_weather_scrollbox()
         self.update_chart_scrollbox()
+        self.update_warnings()
 
     def update_weather(self):
         # Update current weather
@@ -251,6 +253,20 @@ class Interface(object):
         self.current_temperature_label.config(text=str(int(self.weather_assistant.weather['now']['now']['temp'])) + "°C")
         self.max_min_temperature_label.config(text="###")
         self.current_weather_label.config(text=self.weather_assistant.weather['now']['now']['text'])
+    
+    def update_warnings(self):
+        if self.weather_assistant.weather['warning'] == None:
+            return
+        data = self.weather_assistant.weather['warning']['warning']
+        self.warning_scrollbox.clear()
+        if len(data) == 0:
+            no_warning_page = WarningPage(self.warning_scrollbox, "No warning")
+            self.warning_scrollbox.add_page(no_warning_page)
+        else:
+            for warning in data:
+                warning_page = WarningPage(self.warning_scrollbox, warning["title"])
+                self.warning_scrollbox.add_page(warning_page) 
+        
     
     def update_weather_scrollbox(self):
         # Update now weather page
