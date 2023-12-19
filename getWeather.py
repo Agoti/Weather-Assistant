@@ -31,7 +31,7 @@ class GetWeather(object):
     HF_URL_CURRENT = 'https://devapi.qweather.com/v7/weather/now?'
     HF_URL_7DAYS = 'https://devapi.qweather.com/v7/weather/7d?'
     HF_URL_24HOURS = 'https://devapi.qweather.com/v7/weather/24h?'
-    HF_URL_RAIN = 'https://api.qweather.com/v7/minutely/5m?'
+    HF_URL_RAIN = 'https://devapi.qweather.com/v7/minutely/5m?'
     HF_URL_WARNING = 'https://devapi.qweather.com/v7/warning/now?'
     HF_URL_INDICES = 'https://devapi.qweather.com/v7/indices/3d?'
     HF_URL_AIR = 'https://devapi.qweather.com/v7/air/now?'
@@ -139,9 +139,9 @@ class GetWeather(object):
         # data = self.format_location(data)
         if data['code'] != '200':
             return None
-        return data["location"][0]["id"]
+        return data["location"][0]
 
-    def get_hf_current(self, location: str) -> dict:
+    def get_hf_current(self, id: str) -> dict:
         """
         Get current weather infomation of the city
         Parameters:
@@ -155,7 +155,6 @@ class GetWeather(object):
         """
 
         # create request url
-        id = self.get_hf_location(location)
         url = self.hf_url_current + '&location=' + id
         # GET request
         response = requests.get(url)
@@ -163,7 +162,7 @@ class GetWeather(object):
         data = response.json()
         return data
 
-    def get_hf_7days(self, location: str) -> dict:
+    def get_hf_7days(self, id: str) -> dict:
         """
         Get 7 days weather infomation of the city
         Parameters:
@@ -177,7 +176,6 @@ class GetWeather(object):
         """
 
         # create request url
-        id = self.get_hf_location(location)
         url = self.hf_url_7days + '&location=' + id
         # GET request
         response = requests.get(url)
@@ -185,7 +183,7 @@ class GetWeather(object):
         data = response.json()
         return data
     
-    def get_hf_24hours(self, location: str) -> dict:
+    def get_hf_24hours(self, id: str) -> dict:
         """
         Get 24 hours weather infomation of the city
         Parameters:
@@ -199,7 +197,6 @@ class GetWeather(object):
         """
 
         # create request url
-        id = self.get_hf_location(location)
         url = self.hf_url_24hours + '&location=' + id
         # GET request
         response = requests.get(url)
@@ -207,7 +204,7 @@ class GetWeather(object):
         data = response.json()
         return data
 
-    def get_hf_rain(self, location: str) -> dict:
+    def get_hf_rain(self, lat: str, lon: str) -> dict:
         """
         Get rain infomation of the city
         Parameters:
@@ -221,15 +218,18 @@ class GetWeather(object):
         """
 
         # create request url
-        id = self.get_hf_location(location)
-        url = self.hf_url_rain + '&location=' + id
+        # round to 2 decimal places after the decimal point
+        # NOTE: both lat and lon are string
+        lat = str(round(float(lat), 2))
+        lon = str(round(float(lon), 2))
+        url = self.hf_url_rain + '&location=' + lon + ',' + lat
         # GET request
         response = requests.get(url)
         # decode the response
         data = response.json()
         return data
 
-    def get_hf_warning(self, location: str) -> dict:
+    def get_hf_warning(self, id: str) -> dict:
         """
         Get warning infomation of the city
         Parameters:
@@ -243,7 +243,6 @@ class GetWeather(object):
         """
 
         # create request url
-        id = self.get_hf_location(location)
         url = self.hf_url_warning + '&location=' + id
         # GET request
         response = requests.get(url)
@@ -251,7 +250,7 @@ class GetWeather(object):
         data = response.json()
         return data
 
-    def get_hf_indices(self, location: str) -> dict:
+    def get_hf_indices(self, id: str) -> dict:
         """
         Get indices infomation of the city
         Parameters:
@@ -265,15 +264,14 @@ class GetWeather(object):
         """
 
         # create request url
-        id = self.get_hf_location(location)
-        url = self.hf_url_indices + '&location=' + id
+        url = self.hf_url_indices + '&location=' + id + "&type=0"
         # GET request
         response = requests.get(url)
         # decode the response
         data = response.json()
         return data
 
-    def get_hf_air(self, location: str) -> dict:
+    def get_hf_air(self, id: str) -> dict:
         """
         Get air infomation of the city
         Parameters:
@@ -287,7 +285,6 @@ class GetWeather(object):
         """
 
         # create request url
-        id = self.get_hf_location(location)
         url = self.hf_url_air + '&location=' + id
         # GET request
         response = requests.get(url)
@@ -295,7 +292,7 @@ class GetWeather(object):
         data = response.json()
         return data
 
-    def get_hf_air_forecast(self, location: str) -> dict:
+    def get_hf_air_forecast(self, id: str) -> dict:
         """
         Get air forecast infomation of the city
         Parameters:
@@ -309,7 +306,6 @@ class GetWeather(object):
         """
 
         # create request url
-        id = self.get_hf_location(location)
         url = self.hf_url_air_forecast + '&location=' + id
         # GET request
         response = requests.get(url)

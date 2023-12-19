@@ -7,6 +7,7 @@ import tkinter.ttk as ttk
 from tkinter import messagebox
 from WeatherAssistant import WeatherAssistant
 from city_prediction import predict_city
+from SerialPages import *
 
 ##########################################################################
 # """
@@ -43,53 +44,72 @@ from city_prediction import predict_city
 class Interface(object):
     def __init__(self, master):
 
-        ## ----- Master ----- ##
-        self.master = master
-        self.master.title("Weather Assistant")
-        self.master.geometry("800x600")
-        self.master.resizable(False, False)
-        self.master.bind('<Button-1>', self.on_background_click)
-        self.master.bind('<Return>', lambda event: self.add_city(self.city_entry.get()))
-        
         self.weather_assistant = WeatherAssistant()
+        # self.weather_assistant = WeatherAssistant(do_not_update=True)
 
-        ## ----- Background ----- ##
-        # The background is a frame
-        self.background_frame = tk.Frame(master)
-        self.background_frame.pack(fill=tk.BOTH, expand=True)
-    
-        # Configure columns and rows
-        self.background_frame.columnconfigure(0, weight=1)
-        self.background_frame.columnconfigure(1, weight=2)
-        self.background_frame.columnconfigure(2, weight=1)
-        self.background_frame.rowconfigure(0, weight=1)
-        self.background_frame.rowconfigure(1, weight=2)
-        self.background_frame.rowconfigure(2, weight=2)
-        self.background_frame.rowconfigure(3, weight=2)
-        self.background_frame.rowconfigure(4, weight=2)
-        
         ## ----- Settings ----- ##
         self.settings = {
             "language": "English",
         }
 
+        ## ----- Master ----- ##
+        self.master = master
+        self.master.title("Weather Assistant")
+        self.master.geometry("1200x800")
+        self.master.resizable(False, False)
+        self.master.bind('<Button-1>', self.on_background_click)
+        self.master.bind('<Return>', lambda event: self.add_city(self.city_entry.get()))
+        self.master.rowconfigure(0, weight=1)
+        self.master.columnconfigure(0, weight=1)
+        
+        ## ----- Menu ----- ##
+        self.menu = tk.Menu(self.master)
+        self.master.config(menu=self.menu)
+        # City
+        self.city_menu = tk.Menu(self.menu)
+        self.city_menu.add_command(label="Remove City", command=None)
+        self.menu.add_cascade(label="City", menu=self.city_menu)
+        # Settings
+        self.settings_menu = tk.Menu(self.menu)
+        self.settings_menu.add_command(label="Language", command=None)
+        self.menu.add_cascade(label="Settings", menu=self.settings_menu)
+        # Help
+        self.help_menu = tk.Menu(self.menu)
+        self.help_menu.add_command(label="About", command=self.remove_city)
+        self.menu.add_cascade(label="Help", menu=self.help_menu)
+
+        ## ----- Background ----- ##
+        # The background is a frame
+        s = ttk.Style()
+        s.configure("Background.TFrame", background="yellow")
+        self.background_frame = ttk.Frame(master, style="Background.TFrame")
+        self.background_frame.grid(row=0, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
+    
+        # Configure columns and rows
+        self.background_frame.rowconfigure(0, weight=1)
+        self.background_frame.columnconfigure(0, weight=1)
+        self.background_frame.columnconfigure(1, weight=10)
+        
         ## ----- Left side ----- ##
+        left_frame_style = ttk.Style()
+        left_frame_style.configure("LeftFrame.TFrame", background="red")
+        self.left_frame = ttk.Frame(self.background_frame, style="LeftFrame.TFrame")
+        self.left_frame.grid(row=0, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
+        self.left_frame.columnconfigure(0, weight=1)
+        self.left_frame.rowconfigure(0, weight=1)
+        self.left_frame.rowconfigure(1, weight=10)
         # Search bar and City list on the left
-        self.city_entry = tk.Entry(self.background_frame)
-        self.city_entry.grid(row=0, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
-        # # The add city button is used for testing, 
-        # # it will be removed after the prediction function is implemented
-        # self.add_city_button = tk.Button(master, text="Add City", command=self.add_city)
-        # self.add_city_button.grid(row=0, column=1, sticky=tk.N+tk.S+tk.W+tk.E)
+        self.city_entry = tk.Entry(self.left_frame)
+        self.city_entry.grid(row=0, column=0, sticky=tk.W+tk.E)
         # When the searchbox is selected, the city list is disabled
         self.city_entry_var = tk.StringVar()
-        self.city_entry_var.trace('w', self.update_city_listbox)
+        self.city_entry_var.trace_add('write', self.update_city_listbox)
         self.city_entry.config(textvariable=self.city_entry_var)
         self.city_entry.bind('<FocusIn>', self.searchbox_selected)
         self.city_entry.bind('<FocusOut>', self.searchbox_unselected)
         # When there's text in searchbox, below the searchbox are prediction cities
         # The city listbox
-        self.city_listbox = tk.Listbox(self.background_frame, selectmode=tk.SINGLE)
+        self.city_listbox = tk.Listbox(self.left_frame, selectmode=tk.SINGLE)
         self.city_listbox.bind('<Double-Button-1>', self.city_listbox_click)
         self.city_listbox.grid(row=1, column=0, rowspan=4, sticky=tk.N+tk.S+tk.W+tk.E)
         self.city_listbox_status = "city_list"
@@ -97,29 +117,59 @@ class Interface(object):
         self.city_listbox.bind('<FocusOut>', self.city_listbox_unselected)
 
         ## ----- Right side ----- ##
+        right_frame_style = ttk.Style()
+        right_frame_style.configure("RightFrame.TFrame", background="blue")
+        self.right_frame = ttk.Frame(self.background_frame, style="RightFrame.TFrame")
+        self.right_frame.grid(row=0, column=1, sticky=tk.N+tk.S+tk.W+tk.E)
+        self.right_frame.columnconfigure(0, weight=1)
+        self.right_frame.rowconfigure(0, weight=1)
+        self.right_frame.rowconfigure(1, weight=1)
+        self.right_frame.rowconfigure(2, weight=1)
+        self.right_frame.rowconfigure(3, weight=1)
+        self.right_frame.rowconfigure(4, weight=1)
+        self.right_frame.rowconfigure(5, weight=10)
+        self.right_frame.rowconfigure(6, weight=10)
         # City name and delete city button
-        self.city_name_label = tk.Label(self.background_frame, text=self.weather_assistant.current_city)
-        self.city_name_label.grid(row=0, column=1, sticky=tk.N+tk.S+tk.W+tk.E)
-        self.remove_city_button = ttk.Button(self.background_frame, text="Remove City", command=self.remove_city)
-        self.remove_city_button.grid(row=0, column=2, sticky=tk.N+tk.S+tk.W+tk.E) 
+        self.city_name_label = tk.Label(self.right_frame, text=self.weather_assistant.current_city)
+        self.city_name_label.grid(row=0, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
         # Current Temperature
         # Style: Big font
-        self.current_temperature_label = tk.Label(self.background_frame, text="0", font=("Helvetica", 48))
-        self.current_temperature_label.grid(row=1, column=1, sticky=tk.N+tk.S+tk.W+tk.E)
+        self.current_temperature_label = tk.Label(self.right_frame, text="0", font=("Helvetica", 48))
+        self.current_temperature_label.grid(row=1, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
         # Max / Min Temperature
-        self.max_min_temperature_label = tk.Label(self.background_frame, text="0/0")
-        self.max_min_temperature_label.grid(row=2, column=1, sticky=tk.N+tk.S+tk.W+tk.E)
+        self.max_min_temperature_label = tk.Label(self.right_frame, text="0/0")
+        self.max_min_temperature_label.grid(row=2, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
         # Current Weather
-        self.current_weather_label = tk.Label(self.background_frame, text="Weather")
-        self.current_weather_label.grid(row=3, column=1, sticky=tk.N+tk.S+tk.W+tk.E)
-        # Humidity | Wind | Pressure | Clouds
-        self.humidity_wind_pressure_clouds_label = tk.Label(self.background_frame, text="0% | 0m/s | 0hPa | 0%")
-        self.humidity_wind_pressure_clouds_label.grid(row=4, column=1, sticky=tk.N+tk.S+tk.W+tk.E)
+        self.current_weather_label = tk.Label(self.right_frame, text="Weather")
+        self.current_weather_label.grid(row=3, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
+        # Warning scrollbox
+        self.warning_label = tk.Label(self.right_frame, text="Warning")
+        self.warning_label.grid(row=4, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
+        # Weather scrollbox 
+        self.weather_scrollbox = SerialDisplay(self.right_frame)
+        self.now_weather_page = NowWeatherPage(self.weather_scrollbox)
+        self.weather_scrollbox.add_page(self.now_weather_page)
+        self.wind_page = WindPage(self.weather_scrollbox)
+        self.weather_scrollbox.add_page(self.wind_page)
+        self.index_page = IndexPage(self.weather_scrollbox)
+        self.weather_scrollbox.add_page(self.index_page)
+        self.weather_scrollbox.grid(row=5, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
+        # Chart scrollbox
+        self.chart_scrollbox = SerialDisplay(self.right_frame)
+        self.chart_24hours_page = Chart24HoursPage(self.chart_scrollbox)
+        self.chart_7days_page = Chart7DaysPage(self.chart_scrollbox)
+        self.chart_rain_page = ChartRainPage(self.chart_scrollbox)
+        self.chart_scrollbox.add_page(self.chart_24hours_page)
+        self.chart_scrollbox.add_page(self.chart_7days_page)
+        self.chart_scrollbox.add_page(self.chart_rain_page)
+        self.chart_scrollbox.grid(row=6, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
 
         # Finalizing the layout
+        self.master.focus()
         self.update()
 
     ## ----- Callback functions ----- ##
+
     def on_background_click(self, event):
         # When click on the background, the searchbox loses focus
         if event.widget != self.city_entry and event.widget != self.city_listbox:
@@ -189,6 +239,8 @@ class Interface(object):
     def update(self):
         self.update_weather()
         self.update_city_listbox()
+        self.update_weather_scrollbox()
+        self.update_chart_scrollbox()
 
     def update_weather(self):
         # Update current weather
@@ -199,18 +251,46 @@ class Interface(object):
         self.current_temperature_label.config(text=str(int(self.weather_assistant.weather['now']['now']['temp'])) + "°C")
         self.max_min_temperature_label.config(text="###")
         self.current_weather_label.config(text=self.weather_assistant.weather['now']['now']['text'])
-        self.humidity_wind_pressure_clouds_label.config(text=str(int(self.weather_assistant.weather['now']['now']['humidity']))\
-                                                                + "% | " + str(int(self.weather_assistant.weather['now']['now']['windSpeed']))\
-                                                                + "m/s | " + str(int(self.weather_assistant.weather['now']['now']['pressure']))\
-                                                                + "hPa | " + str(int(self.weather_assistant.weather['now']['now']['cloud']))\
-                                                                + "%")
+    
+    def update_weather_scrollbox(self):
+        # Update now weather page
+        if self.weather_assistant.weather['now'] == None or self.weather_assistant.weather['now']['now'] == None:
+            self.now_weather_page.clear()
+        else:
+            self.now_weather_page.update(**self.weather_assistant.weather['now']['now'])
+        # Update wind page
+        if self.weather_assistant.weather['now'] == None or self.weather_assistant.weather['now']['now'] == None:
+            self.wind_page.clear()
+        else:
+            self.wind_page.update(**self.weather_assistant.weather['now']['now'])
+        # Update index page
+        if self.weather_assistant.weather['indices'] == None:
+            self.index_page.clear()
+        else:
+            self.index_page.update(**self.weather_assistant.weather['indices'])
+    
+    def update_chart_scrollbox(self):
+        # Update 24 hours chart page
+        if self.weather_assistant.weather['24h'] == None:
+            self.chart_24hours_page.clear()
+        else:
+            self.chart_24hours_page.update(**self.weather_assistant.weather['24h'])
+        # Update 7 days chart page
+        if self.weather_assistant.weather['7d'] == None:
+            self.chart_7days_page.clear()
+        else:
+            self.chart_7days_page.update(**self.weather_assistant.weather['7d'])
+        # Update rain chart page
+        if self.weather_assistant.weather['rain'] == None:
+            self.chart_rain_page.clear()
+        else:
+            self.chart_rain_page.update(**self.weather_assistant.weather['rain'])
     
     def clear_all_labels(self):
         self.city_name_label.config(text="")
         self.current_temperature_label.config(text="")
         self.max_min_temperature_label.config(text="")
         self.current_weather_label.config(text="")
-        self.humidity_wind_pressure_clouds_label.config(text="")
     
     def update_city_listbox(self, *args):
         if self.city_listbox_status == "predict_list":
