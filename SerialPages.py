@@ -1,6 +1,7 @@
 import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+from multi_lang_dict import *
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -10,10 +11,11 @@ plt.rcParams['axes.unicode_minus'] = False
 
 # Abstract class
 class SerialPage(tk.Frame):
-    OCC = "###"
-    def __init__(self, parent):
+    OCC = "---"
+    def __init__(self, parent, language = "English"):
         super().__init__(parent)
         self.parent = parent
+        self.language = language
     
     def update(self, **kwargs):
         pass
@@ -21,22 +23,26 @@ class SerialPage(tk.Frame):
     def clear(self):
         pass
 
+    def set_language(self, language):
+        pass
+
 class NowWeatherPage(SerialPage):
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent, language = "English"):
+        super().__init__(parent, language)
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
         self.rowconfigure(2, weight=1)
-        self.title = "Now Weather"
-        self.keys = ["humidity", "feelsLike", "windDir", "windScale", "pressure", "vis", "cloud"]
-        self.units = ["%", "°C", "", "级", "百帕", "公里", "%"]
+        self.title = language_dict[self.language]['now_weather_title']
+        self.keys = ['humidity', 'feelsLike', 'windDir', 'windScale', 'pressure', 'vis', 'cloud']
+        self.subtitle = language_dict[self.language]['now_weather_subtitle']
+        self.units = language_dict[self.language]['now_weather_units']
         self.title_label = tk.Label(self, text=self.title)
         self.title_label.grid(row=0, column=0, columnspan=len(self.keys), padx=10, pady=10)
 
         for i, key in enumerate(self.keys):
             self.columnconfigure(i, weight=1)
 
-            label = tk.Label(self, text=key)
+            label = tk.Label(self, text=self.subtitle[i])
             label.grid(row=1, column=i, padx=10, pady=10)
             setattr(self, f"{key}_label", label)
 
@@ -53,22 +59,33 @@ class NowWeatherPage(SerialPage):
     def clear(self):
         for key in self.keys:
             getattr(self, key)['text'] = self.OCC
+    
+    def set_language(self, language):
+        self.language = language
+        self.title = language_dict[self.language]['now_weather_title']
+        self.subtitle = language_dict[self.language]['now_weather_subtitle']
+        self.units = language_dict[self.language]['now_weather_units']
+        self.title_label['text'] = self.title
+        for i, key in enumerate(self.keys):
+            getattr(self, key + '_label')['text'] = self.subtitle[i]
+            getattr(self, key)['text'] = self.OCC
 
 class AirPage(SerialPage):
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent, language = "English"):
+        super().__init__(parent, language)
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
         self.rowconfigure(2, weight=1)
-        self.title = "Air Quality"
-        self.keys = ["aqi", "category", "primary", "pm10", "pm2p5", "no2", "so2", "co", "o3"]
-        self.units = ["", "", "", "μg/m³", "μg/m³", "μg/m³", "μg/m³", "mg/m³", "μg/m³"]
+        self.title = language_dict[self.language]['air_quality_title']
+        self.keys = ['aqi', 'category', 'primary', 'pm10', 'pm2p5', 'no2', 'so2', 'co', 'o3']
+        self.subtitle = language_dict[self.language]['air_quality_subtitle']
+        self.units = language_dict[self.language]['air_quality_units']
         self.title_label = tk.Label(self, text=self.title)
         self.title_label.grid(row=0, column=0, columnspan=len(self.keys), padx=10, pady=10)
         for i, key in enumerate(self.keys):
             self.columnconfigure(i, weight=1)
 
-            label = tk.Label(self, text=key)
+            label = tk.Label(self, text=self.subtitle[i])
             label.grid(row=1, column=i, padx=10, pady=10)
             setattr(self, f"{key}_label", label)
 
@@ -83,24 +100,35 @@ class AirPage(SerialPage):
     
     def clear(self):
         for key in self.keys:
+            getattr(self, key)['text'] = self.OCC
+    
+    def set_language(self, language):
+        self.language = language
+        self.title = language_dict[self.language]['air_quality_title']
+        self.subtitle = language_dict[self.language]['air_quality_subtitle']
+        self.units = language_dict[self.language]['air_quality_units']
+        self.title_label['text'] = self.title
+        for i, key in enumerate(self.keys):
+            getattr(self, key + '_label')['text'] = self.subtitle[i]
             getattr(self, key)['text'] = self.OCC
 
 
 class WindPage(SerialPage):
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent, language = "English"):
+        super().__init__(parent, language)
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
         self.rowconfigure(2, weight=1)
-        self.title = "Wind"
-        self.keys = ["windDir", "windScale", "windSpeed", "wind360"]
-        self.units = ["", "级", "km/h", "°"] 
+        self.title = language_dict[self.language]['wind_title']
+        self.keys = ['windDir', 'windScale', 'windSpeed', 'wind360']
+        self.subtitle = language_dict[self.language]['wind_subtitle']
+        self.units = language_dict[self.language]['wind_units']
         self.title_label = tk.Label(self, text=self.title)
         self.title_label.grid(row=0, column=0, columnspan=len(self.keys), padx=10, pady=10)
         for i, key in enumerate(self.keys):
             self.columnconfigure(i, weight=1)
 
-            label = tk.Label(self, text=key)
+            label = tk.Label(self, text=self.subtitle[i])
             label.grid(row=1, column=i, padx=10, pady=10)
             setattr(self, f"{key}_label", label)
 
@@ -116,23 +144,40 @@ class WindPage(SerialPage):
     def clear(self):
         for key in self.keys:
             getattr(self, key)['text'] = self.OCC
+    
+    def set_language(self, language):
+        self.language = language
+        self.title = language_dict[self.language]['wind_title']
+        self.subtitle = language_dict[self.language]['wind_subtitle']
+        self.units = language_dict[self.language]['wind_units']
+        self.title_label['text'] = self.title
+        for i, key in enumerate(self.keys):
+            getattr(self, key + '_label')['text'] = self.subtitle[i]
+            getattr(self, key)['text'] = self.OCC
+    
+    # def get_direction(self, direction360):
+    #     dir_main = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+    #     dir_idx = int((direction360 + 22.5) / 45)
+    #     dir_remainder = (direction360 + 22.5) % 45
+    #     return language_dict[self.language]['wind_direction'][dir_main[dir_idx % 8]] +\
 
 
 class SunMoonPage(SerialPage):
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent, language = "English"):
+        super().__init__(parent, language)
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
         self.rowconfigure(2, weight=1)
-        self.title = "Sun & Moon"
-        self.keys = ["sunrise", "sunset", "moonrise", "moonset", "moonPhase"]
-        self.units = ["", "", "", "", ""]
+        self.title = language_dict[self.language]['sun_moon_title']
+        self.keys = ['sunrise', 'sunset', 'moonrise', 'moonset', 'moonPhase']
+        self.subtitle = language_dict[self.language]['sun_moon_subtitle']
+        self.units = language_dict[self.language]['sun_moon_units']
         self.title_label = tk.Label(self, text=self.title)
         self.title_label.grid(row=0, column=0, columnspan=len(self.keys), padx=10, pady=10)
         for i, key in enumerate(self.keys):
             self.columnconfigure(i, weight=1)
 
-            label = tk.Label(self, text=key)
+            label = tk.Label(self, text=self.subtitle[i])
             label.grid(row=1, column=i, padx=10, pady=10)
             setattr(self, f"{key}_label", label)
 
@@ -147,14 +192,24 @@ class SunMoonPage(SerialPage):
     
     def clear(self):
         for key in self.keys:
+            getattr(self, key)['text'] = self.OCC
+    
+    def set_language(self, language):
+        self.language = language
+        self.title = language_dict[self.language]['sun_moon_title']
+        self.subtitle = language_dict[self.language]['sun_moon_subtitle']
+        self.units = language_dict[self.language]['sun_moon_units']
+        self.title_label['text'] = self.title
+        for i, key in enumerate(self.keys):
+            getattr(self, key + '_label')['text'] = self.subtitle[i]
             getattr(self, key)['text'] = self.OCC
         
 
 class IndexPage(SerialPage):
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent, language = "English"):
+        super().__init__(parent, language)
         self.scroll_canvas = tk.Canvas(self)
-        self.scroll_canvas.pack(side=tk.LEFT, fill=tk.Y, expand=True)
+        self.scroll_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
         self.scrollbar = tk.Scrollbar(self, command=self.scroll_canvas.yview)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.scroll_canvas.config(yscrollcommand=self.scrollbar.set)
@@ -162,25 +217,32 @@ class IndexPage(SerialPage):
     def update(self, **kwargs):
         self.clear()
         today = kwargs['daily'][0]['date']
+        cnt = 0
         for i in range(len(kwargs['daily'])):
             if kwargs['daily'][i]['date'] == today:
                 label_text = f"{kwargs['daily'][i]['name']}: {kwargs['daily'][i]['category']}"
-                label = tk.Label(self.scroll_canvas, text=label_text, wraplength=180)  # Adjust wraplength as needed
-                self.scroll_canvas.create_window(10, i * 25, anchor=tk.W, window=label)  # Adjust the x and y position as needed
+                label = tk.Label(self.scroll_canvas, text=label_text)
+                # 2 labels per row
+                self.scroll_canvas.create_window((cnt % 2 * 300, cnt // 2 * 20), window=label, anchor=tk.NW)
+                cnt += 1
 
         # Update the scroll region based on the content size
         self.scroll_canvas.config(scrollregion=self.scroll_canvas.bbox("all"))
 
     def clear(self):
         self.scroll_canvas.delete("all")
+    
+    def set_language(self, language):
+        self.language = language
 
 
 class Chart7DaysPage(SerialPage):
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent, language = "English"):
+        super().__init__(parent, language)
 
         self.fig = Figure()
         self.ax = self.fig.add_subplot(111)
+        self.title = language_dict[self.language]['7d_title']
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
         self.canvas.draw()
@@ -197,11 +259,10 @@ class Chart7DaysPage(SerialPage):
         self.ax.plot(x, y2)
         self.ax.scatter(x, y1)
         self.ax.scatter(x, y2)
-        y1_span = max(y1) - min(y1)
-        y2_span = max(y2) - min(y2)
+        y1_span = max(y1) - min(y2)
         for i in range(len(data)):
-            y_offset_1 = 10 if y1_span and (y1[i] - min(y1)) / y1_span < 0.9 else -20
-            y_offset_2 = 10 if y2_span and (y2[i] - min(y2)) / y2_span < 0.9 else -20
+            y_offset_1 = 10 if y1_span and (y1[i] - min(y2)) / y1_span < 0.8 else -20
+            y_offset_2 = 10
             self.ax.annotate(str(y1[i]) + "°C", (x[i], y1[i]), textcoords="offset points", xytext=(0, y_offset_1),
                              ha='center')
             self.ax.annotate(str(y2[i]) + "°C", (x[i], y2[i]), textcoords="offset points", xytext=(0, y_offset_2),
@@ -216,13 +277,21 @@ class Chart7DaysPage(SerialPage):
     
     def clear(self):
         self.ax.clear()
+        self.ax.set_title(self.title)
+    
+    def set_language(self, language):
+        self.language = language
+        self.title = language_dict[self.language]['7d_title']
+        self.ax.set_title(self.title)
+
 
 class Chart24HoursPage(SerialPage):
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent, language = "English"):
+        super().__init__(parent, language)
 
         self.fig = Figure()
         self.ax = self.fig.add_subplot(111)
+        self.title = language_dict[self.language]['24h_title']
 
         # Create a canvas and a scrollbar,
         # then embed Frame-FigureCanvasTkAgg in the canvas
@@ -267,24 +336,32 @@ class Chart24HoursPage(SerialPage):
         self.ax.scatter(x, y1, color='red')
         span = max(y1) - min(y1)
         for i in range(len(data)):
-            y_offset = 10 if span and (y1[i] - min(y1)) / span < 0.9 else -20
+            y_offset = 10 if span and (y1[i] - min(y1)) / span < 0.8 else -20
             self.ax.annotate(str(y1[i]) + "°C", (x[i], y1[i]), textcoords="offset points", xytext=(0, y_offset),
                              ha='center', color='red')
         x_labels = [data[i]['fxTime'][11:16] for i in range(len(data))]
         self.ax.set_xticks(x)
         self.ax.set_xticklabels(x_labels)  # Rotate x-axis labels for better visibility
         self.fig.tight_layout()
-        self.fig.subplots_adjust(bottom=0.2)
+        self.fig.subplots_adjust(bottom=0.2, top=0.8)
         self.fig_canvas.draw()
 
     def clear(self):
         self.ax.clear()
+        self.ax.set_title(self.title)
+    
+    def set_language(self, language):
+        self.language = language
+        self.title = language_dict[self.language]['24h_title']
+        self.ax.set_title(self.title)
+
 
 class ChartRainPage(SerialPage):
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent, language = "English"):
+        super().__init__(parent, language)
         self.fig = Figure()
         self.ax = self.fig.add_subplot(111)
+        # self.title = language_dict[self.language]['rain_title']
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
@@ -312,16 +389,22 @@ class ChartRainPage(SerialPage):
         self.ax.set_xticklabels(x_labels[::6])
 
         title = kwargs['summary']
-        self.fig.suptitle(title, fontsize=12, ha='left')
+        self.ax.set_title(title)
 
         self.canvas.draw()
     
     def clear(self):
         self.ax.clear()
+        # self.ax.set_title(self.title)
+    
+    def set_language(self, language):
+        self.language = language
+        # self.title = language_dict[self.language]['rain_title']
+        # self.ax.set_title(self.title)
 
 class WarningPage(SerialPage):
-    def __init__(self, parent, text):
-        super().__init__(parent)
+    def __init__(self, parent, text, language = "English"):
+        super().__init__(parent, language)
         self.text_label = tk.Label(self, text=text)
         self.text_label.pack()
     
@@ -331,9 +414,14 @@ class WarningPage(SerialPage):
     def clear(self):
         pass
 
+    def set_language(self, language):
+        pass
+
+
 class SerialDisplay(tk.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, language = "English"):
         super().__init__(parent)
+        self.language = language
         self.current_page = 0
         self.columnconfigure(0, weight=0)
         self.columnconfigure(1, weight=100)
@@ -394,6 +482,12 @@ class SerialDisplay(tk.Frame):
         self.serial_pages = []
         self.current_page = 0
         self.show_current_page()
+    
+    def set_language(self, language):
+        self.language = language
+        for page in self.serial_pages:
+            page.set_language(language)
+    
 
 if __name__ == "__main__":
     root = tk.Tk()

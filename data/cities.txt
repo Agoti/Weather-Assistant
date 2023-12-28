@@ -2,3 +2,7 @@ Beijing
 Shenyang
 Shijiazhuang
 Fuxin
+Kunming
+Fuzhou
+Guangzhou
+Chaoyang

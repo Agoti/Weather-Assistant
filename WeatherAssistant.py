@@ -25,7 +25,7 @@ class WeatherAssistant(object):
         self.get_weather = GetWeather(language)
         self.language = language
         self.cities, self.current_city = self.load_cities()
-        self.all_city_list = self.load_all_city()
+        self.all_cities = self.load_all_cities()
         self.language = 'en'
         self.weather = self.EMPTY_WEATHER_DICT
         if not do_not_update:
@@ -37,7 +37,7 @@ class WeatherAssistant(object):
         """
         try:
             self.language = language
-            self.get_weather.set_language(language)
+            self.get_weather.set_hf_language(language)
             self.update_weather()
             return "Success"
         except ValueError as e:
@@ -63,20 +63,20 @@ class WeatherAssistant(object):
         except:
             return [], None
 
-    def load_all_city(self) -> list:
+    def load_all_cities(self) -> dict:
         """
-        Load all city list from csv file
-        all_city_list: list of 3-tuple: (EnglishName, CNInfo_dict, ENInfo_dict)
-        - EnglishName: English name of the city
-        - CNInfo_dict: Chinese infomation of the city or state
+        Load all cities from csv file
+        all_cities: a dict {en_name: {'en': en_dict, 'zh': cn_dict}}
+        - en_name: English name of the city
+        - cn_dict: Chinese infomation of the city or state
             - Name: Chinese name of the city or state
             - StateName: Chinese name of the state(if state, this does not exist)
             - CountryName: Chinese name of the country
-        - ENInfo_dict: English infomation of the city or state
-            - Refer to CNInfo_dict
+        - en_dict: English infomation of the city or state
+            - Refer to cn_dict
         """
         try:
-            city_list = []
+            cities = {}
             # keep track of the state
             state = set()
             with open(WeatherAssistant.ALL_CITY, 'r', encoding='utf-8') as f:
@@ -88,31 +88,34 @@ class WeatherAssistant(object):
                 for line in f:
                     line = line.strip()
                     line = line.split(',')
-                    temp = (line[1], {
+                    temp = {'zh': {
                         'Name': line[0],
                         'StateName': line[2],
                         'CountryName': line[4]
-                    }, {
+                    }, 'en': {
                         'Name': line[1],
                         'StateName': line[3],
                         'CountryName': line[5]
-                    })
+                    }, 'type': 'city'}
                     # add state to city list
-                    if temp[1]['StateName'] and temp[1]['StateName'] not in state:
-                        state.add(temp[1]['StateName'])
-                        temp_province = (temp[1]['StateName'], {
-                            'Name': temp[1]['StateName'],
-                            'CountryName': temp[1]['CountryName']
-                        }, {
-                            'Name': temp[2]['StateName'],
-                            'CountryName': temp[2]['CountryName']
-                        })
-                        city_list.append(temp_province)
+                    if temp['zh']['StateName'] and temp['zh']['StateName'] not in state:
+                        state.add(temp['zh']['StateName'])
+                        temp_province = {
+                            'zh': {
+                                'Name': temp['zh']['StateName'],
+                                'CountryName': temp['zh']['CountryName']
+                            },
+                            'en': {
+                                'Name': temp['en']['StateName'],
+                                'CountryName': temp['en']['CountryName']
+                        }, 'type': 'state'}
+                        cities[temp['en']['StateName']] = temp_province
                     
-                    city_list.append(temp)
-            return city_list
-        except:
-            return []
+                    cities[temp['en']['Name']] = temp
+            return cities
+        except Exception as e:
+            print(e)
+            return {}
 
     def save_cities(self):
         """
@@ -130,7 +133,7 @@ class WeatherAssistant(object):
         Add a city to city list
         """
         try:
-            if city_name not in [city[0] for city in self.all_city_list]:
+            if city_name not in self.all_cities:
                 return "Unknown city"
             if city_name in self.cities:
                 return "City already in city list"
@@ -171,6 +174,7 @@ class WeatherAssistant(object):
         Shift current city
         """
         try:
+            # Retrieve city in all_cities
             if city_name not in self.cities:
                 return "City not in city list"
             self.current_city = city_name
@@ -194,16 +198,6 @@ class WeatherAssistant(object):
             lat = city['lat']
             lon = city['lon']
 
-            # self.weather['now'] = self.get_weather.get_hf_current(id)
-            # self.weather['7d'] = self.get_weather.get_hf_7days(id)
-            # self.weather['24h'] = self.get_weather.get_hf_24hours(id)
-            # self.weather['rain'] = self.get_weather.get_hf_rain(lat, lon)
-            # self.weather['warning'] = self.get_weather.get_hf_warning(id)
-            # self.weather['indices'] = self.get_weather.get_hf_indices(id)
-            # self.weather['air'] = self.get_weather.get_hf_air(id)
-            # self.weather['air_forecast'] = self.get_weather.get_hf_air_forecast(id)
-            # # print("Update weather success")
-
             # Use multi-threading to speed up
             api_functions = [
                 lambda: self.get_weather.get_hf_current(idx),
@@ -222,7 +216,6 @@ class WeatherAssistant(object):
             keys = ['now', '7d', '24h', 'rain', 'warning', 'indices', 'air', 'air_forecast']
             for i in range(len(results)):
                 self.weather[keys[i]] = results[i]
-
 
         except Exception as e:
             # print(e)

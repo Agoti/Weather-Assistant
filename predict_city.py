@@ -1,13 +1,14 @@
 # city_prediction.py
 # Description: predict the city based on the user input
 import re
+from multi_lang_dict import *
 
-def predict_city(input_text: str, city_list: list, n_entries: int = 5, language: str = 'English') -> list:
+def predict_city(input_text: str, cities: dict, n_entries: int = 5, language: str = 'English') -> list:
     """
     Predict the city based on the user input  
     Input:
     - input_text: the user input
-    - city_list: the all-city list
+    - cities: the city dict
     - n_entries: the number of entries to return
     - language: the language of the input text, only support English and Chinese  
     Output:
@@ -27,24 +28,25 @@ def predict_city(input_text: str, city_list: list, n_entries: int = 5, language:
         return []
 
     match_list = []
-    # iterate through the city list
-    for city in city_list:
+    # iterate through the city dict
+    for city in cities:
         # get the city name
         if language == 'English':
-            city_name = city[2]["Name"]
+            city_name = cities[city][language_alias_dict[language]]["Name"]
             city_name = city_name.lower()
             city_name = re.sub(r'[^a-z ]', '', city_name)
         if language == 'Chinese':
-            city_name = city[1]["Name"]
+            city_name = cities[city][language_alias_dict[language]]["Name"]
 
         # if the input text is a prefix of the city name
         if city_name.startswith(input_text): 
             # add to the match list
-            match_list.append(city)
+            match_list.append(cities[city])
         
     # sort the match list by city name, but always put Chinese cities first
-    match_list.sort(key=lambda x: x[0])
-    match_list.sort(key=lambda x: x[2]["CountryName"] != "China")
+    match_list = sorted(match_list, key=lambda x: x['en']["Name"])
+    match_list = sorted(match_list, key=lambda x: x['en']["CountryName"] != 'China')
+    # return the first n entries
     match_list = match_list[:n_entries]
 
     return match_list
@@ -54,20 +56,20 @@ if __name__ == '__main__':
     # load city list
     wa = WeatherAssistant()
     wa.load_cities()
-    city_list = wa.all_city_list
+    cities = wa.all_cities
     # Chinese test cases
     test_names = ["北京", "石家庄", "郑", "阜", "上"]
     for name in test_names:
         print("Input:", name)
-        match_list = predict_city(name, city_list, language='Chinese')
+        match_list = predict_city(name, cities, language='Chinese')
         for city in match_list:
-            print(city[1]["Name"], city[1]["CountryName"])
+            print(city['zh']['Name'], city['zh']['CountryName'])
     # English test cases
     test_names = ["Lon", "Lond", "London", "New", "New York"]
     for name in test_names:
         print("Input:", name)
-        match_list = predict_city(name, city_list, language='English')
+        match_list = predict_city(name, cities, language='English')
         for city in match_list:
-            print(city[2]["Name"], city[2]["CountryName"])
+            print(city['en']['Name'], city['en']['CountryName'])
 
-    # print(predict_city("上", city_list, language='Chinese', n_entries=10000))
+    print(predict_city("上", cities, language='Chinese', n_entries=100))

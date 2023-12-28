@@ -39,7 +39,7 @@ class GetWeather(object):
     # HeFeng developer key
     HF_KEY = '55c7da0804024e868a70beb00fcd8c03'
 
-    def __init__(self, language: str = 'zh'):
+    def __init__(self, language: str = 'en'):
 
         # OpenWeather API
         self.ow_url_current = self.OW_URL_CURRENT + 'appid=' + self.OW_KEY
@@ -54,7 +54,7 @@ class GetWeather(object):
         self.hf_url_indices = self.HF_URL_INDICES + 'key=' + self.HF_KEY
         self.hf_url_air = self.HF_URL_AIR + 'key=' + self.HF_KEY
         self.hf_url_air_forecast = self.HF_URL_AIR_FORECAST + 'key=' + self.HF_KEY
-        self.set_hf_language('zh')
+        self.set_hf_language(language)
     
     ## --- Set language --- ##
 
@@ -312,122 +312,6 @@ class GetWeather(object):
         # decode the response
         data = response.json()
         return data
-
-    ## --- Format data --- ##
-    # This part is deprecated. 
-    # I decided to use different format for different API :P
-    
-    # def format_current_weather(self, data: dict) -> tuple:
-    #     """
-    #     Format current weather infomation
-    #     Parameters:
-    #         :param data: weather infomation(dict)
-    #     Return:
-    #         :return: formatted weather infomation(tuple) 
-    #         - the first element is the get status:
-    #             - 200: successful
-    #             - 404: city not found
-    #             - 401: invalid API key
-    #         - the second element is the city information:
-    #             - city name('name')
-    #             - country('country')
-    #             - timezone('timezone')
-    #             - latitude and longitude(in 'coord' dict: 'lat', 'lon')
-    #             - sunrise and sunset(in 'sun' dict: 'sunrise', 'sunset')
-    #         - the third element is the weather information:
-    #             - weather dict('weather')
-    #                 - weather('main')
-    #                 - weather description('description')
-    #                 - weather icon('icon')
-    #             - temperature dict('main')
-    #                 - temperature('temp')
-    #                 - feels like('feels_like')
-    #                 - minimum temperature('temp_min')
-    #                 - maximum temperature('temp_max')
-    #                 - pressure('pressure')
-    #                 - sea level pressure('sea_level')
-    #                 - ground level pressure('grnd_level')
-    #                 - humidity('humidity')
-    #             - visibility('visibility')
-    #             - wind dict('wind')
-    #                 - wind speed('speed')
-    #                 - wind direction('deg')
-    #                 - wind gust('gust')
-    #             - cloudiness('clouds')
-    #     """
-        
-    #     # I'm currently using Openweather API
-    #     result = [None, None, None]
-    #     # the first element is the get status
-    #     result[0] = int(data['cod'])
-    #     if result[0] != 200:
-    #         return tuple(result)
-    #     # the second element is the city information
-    #     result[1] = {}
-    #     result[1]['name'] = data['name']
-    #     result[1]['country'] = data['sys']['country']
-    #     result[1]['timezone'] = data['timezone']
-    #     result[1]['coord'] = data['coord']
-    #     result[1]['sun'] = {}
-    #     result[1]['sun']['sunrise'] = data['sys']['sunrise']
-    #     result[1]['sun']['sunset'] = data['sys']['sunset']
-    #     # the third element is the weather information
-    #     result[2] = {}
-    #     result[2]['weather'] = data['weather'][0]
-    #     result[2]['main'] = data['main']
-    #     result[2]['visibility'] = data['visibility']
-    #     result[2]['wind'] = data['wind']
-    #     result[2]['clouds'] = data['clouds']['all']
-
-    #     return tuple(result)
-
-    # def format_forecast_weather(self, data: list) -> tuple:
-    #     """
-    #     Format forecast weather infomation
-    #     Parameters:
-    #         :param data: weather infomation(list)
-    #     Return:
-    #         :return: formatted weather infomation(tuple) 
-    #         - the first element is the get status:
-    #             please refer to format_current_weather
-    #         - the second element is the city information:
-    #             please refer to format_current_weather
-    #         - the third element is the weather information:
-    #             the weather information is a list of weather information, 
-    #             each element is a dict: refer to format_current_weather
-    #             and the dict has an additional key 'time'
-    #             - time: dict of time information
-    #                 - time stamp('dt')
-    #                 - time string('dt_txt'): format: 'YYYY-MM-DD HH:MM:SS'
-    #     """
-
-    #     # I'm currently using Openweather API
-    #     result = [None, None, None]
-    #     # the first element is the get status
-    #     result[0] = int(data['cod'])
-    #     # the second element is the city information
-    #     result[1] = {}
-    #     result[1]['name'] = data['city']['name']
-    #     result[1]['country'] = data['city']['country']
-    #     result[1]['timezone'] = data['city']['timezone']
-    #     result[1]['coord'] = data['city']['coord']
-    #     result[1]['sun'] = {}
-    #     result[1]['sun']['sunrise'] = data['city']['sunrise']
-    #     result[1]['sun']['sunset'] = data['city']['sunset']
-    #     # the third element is the weather information
-    #     result[2] = []
-    #     for item in data['list']:
-    #         result[2].append({})
-    #         result[2][-1]['weather'] = item['weather'][0]
-    #         result[2][-1]['main'] = item['main']
-    #         result[2][-1]['visibility'] = item['visibility']
-    #         result[2][-1]['wind'] = item['wind']
-    #         result[2][-1]['clouds'] = item['clouds']['all']
-    #         result[2][-1]['time'] = {}
-    #         result[2][-1]['time']['dt'] = item['dt']
-    #         result[2][-1]['time']['dt_txt'] = item['dt_txt']
-
-    #     return tuple(result)
 
     
 if __name__ == '__main__':

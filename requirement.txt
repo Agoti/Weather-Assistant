@@ -1,2 +1,4 @@
 request
 tkinter
+matplotlib
+numpy
