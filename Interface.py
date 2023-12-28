@@ -162,7 +162,7 @@ class Interface(object):
         # Finalizing the layout
         self.master.focus()
         self.master.update()
-        self.update()
+        self.update_ui()
 
     ## ----- Callback functions ----- ##
 
@@ -237,7 +237,7 @@ class Interface(object):
             city = list(self.weather_assistant.all_cities)[city_idx]
         res = self.weather_assistant.add_city(city)
         if res == "Success":
-            self.update()
+            self.update_ui()
             messagebox.showinfo(language_dict[self.settings["language"]]["success"], \
                                 language_dict[self.settings["language"]]["city_added"])
             # clear the searchbox
@@ -250,7 +250,7 @@ class Interface(object):
     def remove_city(self):
         res = self.weather_assistant.remove_city(self.weather_assistant.current_city)
         if res == "Success":
-            self.update()
+            self.update_ui()
             messagebox.showinfo(language_dict[self.settings["language"]]["success"], \
                                 language_dict[self.settings["language"]]["city_removed"])
         else:
@@ -262,13 +262,13 @@ class Interface(object):
         city = list(self.weather_assistant.cities)[city_idx]
         res = self.weather_assistant.shift_city(city)
         if res == "Success":
-            self.update()
+            self.update_ui()
         else:
             messagebox.showerror(language_dict[self.settings["language"]]["error"], res)
 
     ## ----- Updating Functions ----- ##
 
-    def update(self):
+    def update_ui(self):
         self.update_weather()
         self.update_city_listbox()
         self.update_weather_scrollbox()
@@ -383,7 +383,7 @@ class Interface(object):
         self.warning_scrollbox.set_language(self.settings["language"])
         self.chart_scrollbox.set_language(self.settings["language"])
 
-        self.update()
+        self.update_ui()
 
 
 if __name__ == "__main__":
