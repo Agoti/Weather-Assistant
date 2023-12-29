@@ -6,6 +6,9 @@ import tkinter as tk
 import tkinter.ttk as ttk
 import os
 import json
+import time
+import threading
+import warnings
 from tkinter import messagebox
 from WeatherAssistant import WeatherAssistant
 from predict_city import predict_city
@@ -41,7 +44,7 @@ from multi_lang_dict import *
 # [DNF] Icon and background color
 # [x] Min max temperature(currently not correct)
 # [x] Style and layout, font, color, etc. Window size, alignment, etc.
-# [] Do not block the interface. Use multithreading and add a loading animation
+# [x] Do not block the interface. Use multithreading and add a loading animation
 # [x] Error handling, when the city is not found, etc.
 # [] Up to date weather infomation
 # [] Detailed Comments, Report
@@ -58,6 +61,9 @@ class Interface(object):
         ## ----- Settings ----- ##
         self.settings = self.load_settings()
         self.weather_assistant = WeatherAssistant(language=language_alias_dict[self.settings["language"]])
+
+        ## ----- Threads ----- ##
+        self.thread_lock = threading.Lock()
 
         ## ----- Master ----- ##
         self.master = master
@@ -93,9 +99,8 @@ class Interface(object):
         self.left_frame.rowconfigure(0, weight=0)
         self.left_frame.rowconfigure(1, weight=1)
         # Search bar and City list on the left
-        # Do not use Helvetica font, use more common font
-        # Ok I give in, use Helvetica font
-        self.city_entry = tk.Entry(self.left_frame, font=("Helvetica", 16))
+        # Do not use Helvetica font, use a Chinese-friendly font
+        self.city_entry = ttk.Entry(self.left_frame, font=("Microsoft YaHei", 12))
         self.city_entry.grid(row=0, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
         # When the searchbox is selected, the city list is disabled
         self.city_entry_var = tk.StringVar()
@@ -118,7 +123,7 @@ class Interface(object):
         # self.right_frame.grid(row=0, column=1, sticky=tk.N+tk.S+tk.W+tk.E)
         self.right_frame.place(relx=self.left_frame_ratio, rely=0, relwidth=self.right_frame_ratio, relheight=1)
         # PLACE all the widgets in the right frame
-        self.rf_weights = [1, 2, 1, 1, 1, 3, 5]
+        self.rf_weights = [1, 2, 1, 1, 1, 3, 5, 1]
         self.rf_ratios = [weight / sum(self.rf_weights) for weight in self.rf_weights]
         # City name and delete city button
         self.city_name_label = tk.Label(self.right_frame, text=self.weather_assistant.current_city)
@@ -158,6 +163,9 @@ class Interface(object):
         self.chart_scrollbox.add_page(self.chart_7days_page)
         self.chart_scrollbox.add_page(self.chart_rain_page)
         self.chart_scrollbox.place(relx=0, rely=self.rf_ratios[0]+self.rf_ratios[1]+self.rf_ratios[2]+self.rf_ratios[3]+self.rf_ratios[4]+self.rf_ratios[5], relwidth=1, relheight=self.rf_ratios[6])
+        # Last update time
+        self.last_update_time_label = tk.Label(self.right_frame, text=language_dict[self.settings["language"]]["last_update"])
+        self.last_update_time_label.place(relx=0, rely=self.rf_ratios[0]+self.rf_ratios[1]+self.rf_ratios[2]+self.rf_ratios[3]+self.rf_ratios[4]+self.rf_ratios[5]+self.rf_ratios[6], relwidth=1, relheight=self.rf_ratios[7])
 
         # Finalizing the layout
         self.master.focus()
@@ -174,6 +182,8 @@ class Interface(object):
     def on_master_return(self, event):
         if self.city_listbox_status == "predict_list":
             # add the selected city to the city list
+            if not self.prediction_list:
+                return
             self.add_city(self.prediction_list[0]["en"]["Name"])
 
     def searchbox_selected(self, event):
@@ -197,8 +207,12 @@ class Interface(object):
     
     def city_listbox_click(self, event):
         if self.city_listbox_status == "predict_list":
+            if self.city_listbox.curselection() == ():
+                return
+            selected_city_idx = self.city_listbox.curselection()[0]
+            selected_city = self.prediction_list[selected_city_idx]["en"]["Name"]
             # add the selected city to the city list
-            self.add_city()
+            self.add_city(selected_city)
         else:
             # shift the selected city to the current city
             self.shift_city()
@@ -208,17 +222,20 @@ class Interface(object):
     def create_menu(self):
         self.menu.delete(0, tk.END)
         # City
-        self.city_menu = tk.Menu(self.menu)
+        self.city_menu = tk.Menu(self.menu, tearoff=False)
         self.city_menu.add_command(label=language_dict[self.settings["language"]]["remove_city_command"], command=self.remove_city)
+        self.city_menu.add_command(label=language_dict[self.settings["language"]]["update_weather_command"], command=self.update_weather)
         self.menu.add_cascade(label=language_dict[self.settings["language"]]["city_menu"], menu=self.city_menu)
         # Settings
-        self.settings_menu = tk.Menu(self.menu)
-        self.settings_menu.add_command(label=language_dict[self.settings["language"]]["english_command"], command=lambda: self.change_language("English"))
-        self.settings_menu.add_command(label=language_dict[self.settings["language"]]["chinese_command"], command=lambda: self.change_language("Chinese"))
-        self.menu.add_cascade(label=language_dict[self.settings["language"]]["language_menu"], menu=self.settings_menu)
+        self.settings_menu = tk.Menu(self.menu, tearoff=False)
+        self.language_submenu = tk.Menu(self.settings_menu, tearoff=False)
+        self.language_submenu.add_command(label=language_dict[self.settings["language"]]["english_command"], command=lambda: self.change_language("English"))
+        self.language_submenu.add_command(label=language_dict[self.settings["language"]]["chinese_command"], command=lambda: self.change_language("Chinese"))
+        self.menu.add_cascade(label=language_dict[self.settings["language"]]["settings_menu"], menu=self.settings_menu)
+        self.settings_menu.add_cascade(label=language_dict[self.settings["language"]]["language_menu"], menu=self.language_submenu, underline=0)
         # Help
-        self.help_menu = tk.Menu(self.menu)
-        self.help_menu.add_command(label=language_dict[self.settings["language"]]["help_menu"], command=lambda: messagebox.showinfo("About us", "Weather Assistant\nBy Monster Kid"))
+        self.help_menu = tk.Menu(self.menu, tearoff=False)
+        self.help_menu.add_command(label=language_dict[self.settings["language"]]["help_menu"], command=lambda: messagebox.showinfo("About us", "Weather Assistant\nBy Monster Kid\nSupport: Hefeng Weather"))
         self.menu.add_cascade(label=language_dict[self.settings["language"]]["help_menu"], menu=self.help_menu)
     
     def save_settings(self):
@@ -230,13 +247,17 @@ class Interface(object):
             return self.DEFAULT_SETTINGS
         with open(self.SETTING_PATH, 'r') as f:
             return json.load(f)
+    
+    def add_city(self, city):
+        thread = threading.Thread(target=self.add_city_thread, args=(city,))
+        thread.start()
 
-    def add_city(self, city=None):
-        if city is None:
-            city_idx = self.city_listbox.curselection()[0]
-            city = list(self.weather_assistant.all_cities)[city_idx]
+    def add_city_thread(self, city=None):
+        self.thread_lock.acquire()
+        self.last_update_time_label.config(text=language_dict[self.settings["language"]]["updating"])
+        # print(f"Adding city {city}")
         res = self.weather_assistant.add_city(city)
-        if res == "Success":
+        if res == "success":
             self.update_ui()
             messagebox.showinfo(language_dict[self.settings["language"]]["success"], \
                                 language_dict[self.settings["language"]]["city_added"])
@@ -245,57 +266,119 @@ class Interface(object):
             # remove focus from searchbox
             self.master.focus()
         else: 
-            messagebox.showerror(language_dict[self.settings["language"]]["error"], res)
-
+            messagebox.showerror(language_dict[self.settings["language"]]["error"], \
+                                 language_dict[self.settings["language"]][res])
+        self.thread_lock.release()
+    
     def remove_city(self):
+        thread = threading.Thread(target=self.remove_city_thread)
+        thread.start()
+
+    def remove_city_thread(self):
+        self.thread_lock.acquire()
+        self.last_update_time_label.config(text=language_dict[self.settings["language"]]["updating"])
         res = self.weather_assistant.remove_city(self.weather_assistant.current_city)
-        if res == "Success":
+        if res == "success":
             self.update_ui()
             messagebox.showinfo(language_dict[self.settings["language"]]["success"], \
                                 language_dict[self.settings["language"]]["city_removed"])
         else:
-            messagebox.showerror(language_dict[self.settings["language"]]["error"], res)
-
+            messagebox.showerror(language_dict[self.settings["language"]]["error"], \
+                                language_dict[self.settings["language"]][res])
+        self.thread_lock.release()
+    
     def shift_city(self):
-        # idx of city in city_listbox
+        if self.city_listbox.curselection() == ():
+            return
         city_idx = self.city_listbox.curselection()[0]
         city = list(self.weather_assistant.cities)[city_idx]
+        thread = threading.Thread(target=self.shift_city_thread, args=(city,))
+        thread.start()
+
+    def shift_city_thread(self, city):
+        self.thread_lock.acquire()
+        self.last_update_time_label.config(text=language_dict[self.settings["language"]]["updating"])
         res = self.weather_assistant.shift_city(city)
-        if res == "Success":
+        if res == "success":
             self.update_ui()
         else:
-            messagebox.showerror(language_dict[self.settings["language"]]["error"], res)
+            messagebox.showerror(language_dict[self.settings["language"]]["error"], \
+                                language_dict[self.settings["language"]][res])
+        self.thread_lock.release()
+    
+    def update_weather(self):
+        thread = threading.Thread(target=self.update_weather_thread)
+        thread.start()
+        
+    def update_weather_thread(self):
+        self.thread_lock.acquire()
+        self.last_update_time_label.config(text=language_dict[self.settings["language"]]["updating"])
+        self.weather_assistant.update_weather()
+        self.update_ui()
+        self.thread_lock.release()
+    
+    def handle_code(self, dict):
+        if dict == None:
+            return 0, "dict_is_none"
+        code = dict["code"]
+        err_dict = {
+            "200": "success",
+            "204": "no_content", 
+            "400": "request_failure",
+            "401": "validation_failure",
+            "402": "max_limit_reached", 
+            "403": "no_access",
+            "404": "unknown_region",
+            "429": "too_many_requests",
+            "500": "timeout",
+        }
+        return code, err_dict[code]
 
     ## ----- Updating Functions ----- ##
 
     def update_ui(self):
-        self.update_weather()
+        self.update_labels()
         self.update_city_listbox()
         self.update_weather_scrollbox()
         self.update_chart_scrollbox()
         self.update_warnings()
 
-    def update_weather(self):
+    def update_labels(self):
         # Update current weather
         self.clear_all_labels()
+        if self.weather_assistant.current_city == None:
+            self.city_name_label.config(text=language_dict[self.settings["language"]]["no_city"])
+            return
         self.city_name_label.config(text=self.weather_assistant.all_cities[self.weather_assistant.current_city][language_alias_dict[self.settings["language"]]]["Name"])
-        if self.weather_assistant.weather['now'] == None:
-            self.current_temperature_label.config(text=language_dict[self.settings["language"]]["update_failure"])
+        code, err = self.handle_code(self.weather_assistant.weather['now'])
+        if code != "200":
+            self.current_temperature_label.config(text=language_dict[self.settings["language"]][err])
             self.current_weather_label.config(text=language_dict[self.settings["language"]]["update_failure"])
+            self.last_update_time_label.config(text=language_dict[self.settings["language"]]["update_failure"])
         else:
             self.current_temperature_label.config(text=str(int(self.weather_assistant.weather['now']['now']['temp'])) + "°C")
             self.current_weather_label.config(text=self.weather_assistant.weather['now']['now']['text'])
+            # datetime string is ISO 8601 format
+            parsed_time = time.strptime(self.weather_assistant.weather['now']['updateTime'], "%Y-%m-%dT%H:%M%z")
+            text = language_dict[self.settings["language"]]["last_update"] + time.strftime("%Y-%m-%d %H:%M", parsed_time)
+            text += " " + self.weather_assistant.weather['now']['refer']['sources'][0]
+            text += " " + self.weather_assistant.weather['now']['refer']['license'][0]
+            self.last_update_time_label.config(text=text)
 
-        if self.weather_assistant.weather['7d'] == None:
-            self.max_min_temperature_label.config(text=language_dict[self.settings["language"]]["update_failure"])
+        code, err = self.handle_code(self.weather_assistant.weather['7d'])
+        if code != "200":
+            self.max_min_temperature_label.config(text=language_dict[self.settings["language"]][err])
         else:
             self.max_min_temperature_label.config(text=str(int(self.weather_assistant.weather['7d']['daily'][0]['tempMin'])) + "°C / " + str(int(self.weather_assistant.weather['7d']['daily'][0]['tempMax'])) + "°C")
     
     def update_warnings(self):
-        if self.weather_assistant.weather['warning'] == None:
+        self.warning_scrollbox.clear()
+        code, err = self.handle_code(self.weather_assistant.weather['warning'])
+        if code != "200":
+            error_page = WarningPage(self.warning_scrollbox, language_dict[self.settings["language"]][err])
+            self.warning_scrollbox.add_page(error_page)
             return
         data = self.weather_assistant.weather['warning']['warning']
-        self.warning_scrollbox.clear()
         if len(data) == 0:
             no_warning_page = WarningPage(self.warning_scrollbox, language_dict[self.settings["language"]]["no_warning"])
             self.warning_scrollbox.add_page(no_warning_page)
@@ -306,44 +389,52 @@ class Interface(object):
     
     def update_weather_scrollbox(self):
         # Update now weather page
-        if self.weather_assistant.weather['now'] == None or self.weather_assistant.weather['now']['now'] == None:
+        code, err = self.handle_code(self.weather_assistant.weather['now'])
+        if code != "200":
             self.now_weather_page.clear()
         else:
             self.now_weather_page.update(**self.weather_assistant.weather['now']['now'])
         # Update wind page
-        if self.weather_assistant.weather['now'] == None or self.weather_assistant.weather['now']['now'] == None:
+        code, err = self.handle_code(self.weather_assistant.weather['now'])
+        if code != "200" or self.weather_assistant.weather['now']['now'] == None:
             self.wind_page.clear()
         else:
             self.wind_page.update(**self.weather_assistant.weather['now']['now'])
         # Update index page
-        if self.weather_assistant.weather['indices'] == None:
+        code, err = self.handle_code(self.weather_assistant.weather['indices'])
+        if code != "200":
             self.index_page.clear()
         else:
             self.index_page.update(**self.weather_assistant.weather['indices'])
         # Update air page
-        if self.weather_assistant.weather['air'] == None:
+        code, err = self.handle_code(self.weather_assistant.weather['air'])
+        if code != "200":
             self.air_page.clear()
         else:
             self.air_page.update(**self.weather_assistant.weather['air']['now'])
         # Update sun moon page
-        if self.weather_assistant.weather['7d'] == None:
+        code, err = self.handle_code(self.weather_assistant.weather['7d'])
+        if code != "200":
             self.sun_moon_page.clear()
         else:
             self.sun_moon_page.update(**self.weather_assistant.weather['7d']['daily'][0])
     
     def update_chart_scrollbox(self):
+        code, err = self.handle_code(self.weather_assistant.weather['24h'])
         # Update 24 hours chart page
-        if self.weather_assistant.weather['24h'] == None:
+        if code != "200":
             self.chart_24hours_page.clear()
         else:
             self.chart_24hours_page.update(**self.weather_assistant.weather['24h'])
         # Update 7 days chart page
-        if self.weather_assistant.weather['7d'] == None:
+        code, err = self.handle_code(self.weather_assistant.weather['7d'])
+        if code != "200":
             self.chart_7days_page.clear()
         else:
             self.chart_7days_page.update(**self.weather_assistant.weather['7d'])
         # Update rain chart page
-        if self.weather_assistant.weather['rain'] == None:
+        code, err = self.handle_code(self.weather_assistant.weather['rain'])
+        if code != "200":
             self.chart_rain_page.clear()
         else:
             self.chart_rain_page.update(**self.weather_assistant.weather['rain'])
@@ -387,7 +478,13 @@ class Interface(object):
 
 
 if __name__ == "__main__":
+    # Ignore matplotlib Userwarning: 
+    # The figure layout has been changed to tight. 
+    warnings.filterwarnings("ignore", category=UserWarning)
+    # Ignore: libpng warning: iCCP: known incorrect sRGB profile
+    # I don't know how to ignore this warning. It's not a big deal.
     root = tk.Tk()
     app = Interface(root)
     root.mainloop()
+    warnings.filterwarnings("default", category=UserWarning)
 

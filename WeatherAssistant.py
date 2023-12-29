@@ -39,11 +39,11 @@ class WeatherAssistant(object):
             self.language = language
             self.get_weather.set_hf_language(language)
             self.update_weather()
-            return "Success"
+            return "success"
         except ValueError as e:
             return str(e)
         except:
-            return "Unknown error"
+            return "unknown_error"
 
     
     def load_cities(self) -> tuple:
@@ -134,19 +134,18 @@ class WeatherAssistant(object):
         """
         try:
             if city_name not in self.all_cities:
-                return "Unknown city"
+                return "unknown_city"
             if city_name in self.cities:
-                return "City already in city list"
+                return "city_in_list"
             self.cities.append(city_name)
             res = self.shift_city(city_name)
-            if res != "Success":
+            if res != "success":
                 self.cities.pop()
                 return res
             self.save_cities()
-            return "Success"
+            return "success"
         except:
-            self.cities.pop()
-            return "Unknown error"
+            return "unknown_error"
 
     def remove_city(self, city_name: str):
         """
@@ -161,13 +160,13 @@ class WeatherAssistant(object):
                     self.update_weather()
                 else:
                     res = self.shift_city(self.cities[idx % len(self.cities)])
-                    if res != "Success":
+                    if res != "success":
                         self.cities.append(city_name)
                         return res
             self.save_cities()
-            return "Success"
+            return "success"
         except:
-            return "Unknown error"
+            return "unknown_error"
 
     def shift_city(self, city_name: str):
         """
@@ -176,13 +175,13 @@ class WeatherAssistant(object):
         try:
             # Retrieve city in all_cities
             if city_name not in self.cities:
-                return "City not in city list"
+                return "city_not_in_list"
             self.current_city = city_name
             self.save_cities()
             self.update_weather()
-            return "Success"
+            return "success"
         except:
-            return "Unknown error"
+            return "unknown_error"
 
     def update_weather(self):
         """
