@@ -1,7 +1,7 @@
 import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-from multi_lang_dict import *
+from assets.multi_lang_dict import *
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -216,6 +216,11 @@ class IndexPage(SerialPage):
 
     def update(self, **kwargs):
         self.clear()
+        # if no arguments, add a default label
+        if len(kwargs) == 0:
+            label = tk.Label(self.scroll_canvas, text=language_dict[self.language]['no_content'])
+            self.scroll_canvas.create_window((0, 0), window=label, anchor=tk.NW)
+            return
         today = kwargs['daily'][0]['date']
         cnt = 0
         for i in range(len(kwargs['daily'])):
@@ -278,6 +283,8 @@ class Chart7DaysPage(SerialPage):
     def clear(self):
         self.ax.clear()
         self.ax.set_title(self.title)
+        self.ax.set_yticks([])
+        self.canvas.draw()
     
     def set_language(self, language):
         self.language = language
@@ -347,8 +354,11 @@ class Chart24HoursPage(SerialPage):
         self.fig_canvas.draw()
 
     def clear(self):
+        self.update_size()
         self.ax.clear()
         self.ax.set_title(self.title)
+        self.ax.set_yticks([])
+        self.fig_canvas.draw()
     
     def set_language(self, language):
         self.language = language
@@ -395,7 +405,9 @@ class ChartRainPage(SerialPage):
     
     def clear(self):
         self.ax.clear()
-        # self.ax.set_title(self.title)
+        self.ax.set_title("")
+        self.ax.set_yticks([])
+        self.canvas.draw()
     
     def set_language(self, language):
         self.language = language
@@ -478,6 +490,10 @@ class SerialDisplay(tk.Frame):
             self.next_button['state'] = tk.NORMAL
     
     def clear(self):
+        for page in self.serial_pages:
+            page.clear()
+    
+    def delete_all_pages(self):
         # Delete all pages in serial_pages
         self.serial_pages = []
         self.current_page = 0

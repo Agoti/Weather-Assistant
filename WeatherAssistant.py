@@ -152,6 +152,8 @@ class WeatherAssistant(object):
         Remove a city from city list
         """
         try:
+            if city_name is None:
+                return "no_city"
             idx = self.cities.index(city_name)
             if idx != -1:
                 self.cities.remove(city_name)
@@ -165,7 +167,7 @@ class WeatherAssistant(object):
                         return res
             self.save_cities()
             return "success"
-        except:
+        except Exception as e:
             return "unknown_error"
 
     def shift_city(self, city_name: str):
@@ -190,7 +192,6 @@ class WeatherAssistant(object):
         try:
             self.weather = self.EMPTY_WEATHER_DICT
             if self.current_city is None:
-                # print("No city selected")
                 return
             city = self.get_weather.get_hf_location(self.current_city)
             idx = city['id']

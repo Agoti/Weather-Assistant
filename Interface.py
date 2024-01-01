@@ -11,9 +11,10 @@ import threading
 import warnings
 from tkinter import messagebox
 from WeatherAssistant import WeatherAssistant
-from predict_city import predict_city
-from SerialPages import *
-from multi_lang_dict import *
+from utils.predict_city import predict_city
+from utils.SerialPages import *
+from assets.multi_lang_dict import *
+from utils.TimerThread import TimerThread
 
 ##########################################################################
 # """
@@ -55,6 +56,7 @@ class Interface(object):
     SETTING_PATH = "data/settings.json"
     DEFAULT_SETTINGS = {
         "language": "English",
+        "update_interval": 300, 
     }
     def __init__(self, master):
 
@@ -64,6 +66,8 @@ class Interface(object):
 
         ## ----- Threads ----- ##
         self.thread_lock = threading.Lock()
+        # Timer thread
+        self.timer_thread = TimerThread(self.settings["update_interval"], self.update_weather)
 
         ## ----- Master ----- ##
         self.master = master
@@ -130,7 +134,7 @@ class Interface(object):
         self.city_name_label.place(relx=0, rely=0, relwidth=1, relheight=self.rf_ratios[0])
         # Current Temperature
         # Style: Big font
-        self.current_temperature_label = tk.Label(self.right_frame, text="0", font=("Helvetica", 48))
+        self.current_temperature_label = tk.Label(self.right_frame, text="0", font=("Microsoft YaHei", 44))
         self.current_temperature_label.place(relx=0, rely=self.rf_ratios[0], relwidth=1, relheight=self.rf_ratios[1])
         # Max / Min Temperature
         self.max_min_temperature_label = tk.Label(self.right_frame, text="0/0")
@@ -231,8 +235,17 @@ class Interface(object):
         self.language_submenu = tk.Menu(self.settings_menu, tearoff=False)
         self.language_submenu.add_command(label=language_dict[self.settings["language"]]["english_command"], command=lambda: self.change_language("English"))
         self.language_submenu.add_command(label=language_dict[self.settings["language"]]["chinese_command"], command=lambda: self.change_language("Chinese"))
+        self.update_interval_submenu = tk.Menu(self.settings_menu, tearoff=False)
+        self.update_interval_submenu.add_command(label=language_dict[self.settings["language"]]["10_seconds"], command=lambda: self.change_update_interval(10))
+        self.update_interval_submenu.add_command(label=language_dict[self.settings["language"]]["5_minutes"], command=lambda: self.change_update_interval(300))
+        self.update_interval_submenu.add_command(label=language_dict[self.settings["language"]]["10_minutes"], command=lambda: self.change_update_interval(600))
+        self.update_interval_submenu.add_command(label=language_dict[self.settings["language"]]["30_minutes"], command=lambda: self.change_update_interval(1800))
+        self.update_interval_submenu.add_command(label=language_dict[self.settings["language"]]["1_hour"], command=lambda: self.change_update_interval(3600))
         self.menu.add_cascade(label=language_dict[self.settings["language"]]["settings_menu"], menu=self.settings_menu)
         self.settings_menu.add_cascade(label=language_dict[self.settings["language"]]["language_menu"], menu=self.language_submenu, underline=0)
+        text_update_interval = language_dict[self.settings["language"]]["update_interval"] + ": " + \
+                                 language_dict[self.settings["language"]][sec2natural_dict[self.settings["update_interval"]]]
+        self.settings_menu.add_cascade(label=text_update_interval, menu=self.update_interval_submenu, underline=0)
         # Help
         self.help_menu = tk.Menu(self.menu, tearoff=False)
         self.help_menu.add_command(label=language_dict[self.settings["language"]]["help_menu"], command=lambda: messagebox.showinfo("About us", "Weather Assistant\nBy Monster Kid\nSupport: Hefeng Weather"))
@@ -278,6 +291,8 @@ class Interface(object):
         self.thread_lock.acquire()
         self.last_update_time_label.config(text=language_dict[self.settings["language"]]["updating"])
         res = self.weather_assistant.remove_city(self.weather_assistant.current_city)
+        # print(self.weather_assistant.current_city)
+        # print(self.weather_assistant.weather == self.weather_assistant.EMPTY_WEATHER_DICT)
         if res == "success":
             self.update_ui()
             messagebox.showinfo(language_dict[self.settings["language"]]["success"], \
@@ -319,7 +334,7 @@ class Interface(object):
     
     def handle_code(self, dict):
         if dict == None:
-            return 0, "dict_is_none"
+            return "0", "dict_is_none"
         code = dict["code"]
         err_dict = {
             "200": "success",
@@ -353,8 +368,8 @@ class Interface(object):
         code, err = self.handle_code(self.weather_assistant.weather['now'])
         if code != "200":
             self.current_temperature_label.config(text=language_dict[self.settings["language"]][err])
-            self.current_weather_label.config(text=language_dict[self.settings["language"]]["update_failure"])
-            self.last_update_time_label.config(text=language_dict[self.settings["language"]]["update_failure"])
+            # self.current_weather_label.config(text=language_dict[self.settings["language"]]["update_failure"])
+            # self.last_update_time_label.config(text=language_dict[self.settings["language"]]["update_failure"])
         else:
             self.current_temperature_label.config(text=str(int(self.weather_assistant.weather['now']['now']['temp'])) + "°C")
             self.current_weather_label.config(text=self.weather_assistant.weather['now']['now']['text'])
@@ -367,14 +382,15 @@ class Interface(object):
 
         code, err = self.handle_code(self.weather_assistant.weather['7d'])
         if code != "200":
-            self.max_min_temperature_label.config(text=language_dict[self.settings["language"]][err])
+            # self.max_min_temperature_label.config(text=language_dict[self.settings["language"]][err])
+            pass
         else:
             self.max_min_temperature_label.config(text=str(int(self.weather_assistant.weather['7d']['daily'][0]['tempMin'])) + "°C / " + str(int(self.weather_assistant.weather['7d']['daily'][0]['tempMax'])) + "°C")
     
     def update_warnings(self):
-        self.warning_scrollbox.clear()
+        self.warning_scrollbox.delete_all_pages()
         code, err = self.handle_code(self.weather_assistant.weather['warning'])
-        if code != "200":
+        if code != "200" or self.weather_assistant.weather['warning']['warning'] == None:
             error_page = WarningPage(self.warning_scrollbox, language_dict[self.settings["language"]][err])
             self.warning_scrollbox.add_page(error_page)
             return
@@ -388,6 +404,9 @@ class Interface(object):
                 self.warning_scrollbox.add_page(warning_page) 
     
     def update_weather_scrollbox(self):
+        self.weather_scrollbox.clear()
+        if self.weather_assistant.current_city == None:
+            return
         # Update now weather page
         code, err = self.handle_code(self.weather_assistant.weather['now'])
         if code != "200":
@@ -404,6 +423,7 @@ class Interface(object):
         code, err = self.handle_code(self.weather_assistant.weather['indices'])
         if code != "200":
             self.index_page.clear()
+            self.index_page.update()
         else:
             self.index_page.update(**self.weather_assistant.weather['indices'])
         # Update air page
@@ -420,6 +440,9 @@ class Interface(object):
             self.sun_moon_page.update(**self.weather_assistant.weather['7d']['daily'][0])
     
     def update_chart_scrollbox(self):
+        self.chart_scrollbox.clear()
+        if self.weather_assistant.current_city == None:
+            return
         code, err = self.handle_code(self.weather_assistant.weather['24h'])
         # Update 24 hours chart page
         if code != "200":
@@ -444,6 +467,7 @@ class Interface(object):
         self.current_temperature_label.config(text="")
         self.max_min_temperature_label.config(text="")
         self.current_weather_label.config(text="")
+        self.last_update_time_label.config(text="")
     
     def update_city_listbox(self, *args):
         self.prediction_list = []
@@ -462,24 +486,42 @@ class Interface(object):
                 display = self.weather_assistant.all_cities[city][language_alias_dict[self.settings["language"]]]["Name"]
                 self.city_listbox.insert(tk.END, display)
     
+    ## ----- Settings Functions ----- ##
+
     def change_language(self, language):
         self.settings["language"] = language
         self.save_settings()
 
         self.master.title(language_dict[self.settings["language"]]["title"])
         self.create_menu()
+        
+        self.thread_lock.acquire()
         self.weather_assistant.set_language(language_alias_dict[self.settings["language"]])
+        self.thread_lock.release()
 
         self.weather_scrollbox.set_language(self.settings["language"])
         self.warning_scrollbox.set_language(self.settings["language"])
         self.chart_scrollbox.set_language(self.settings["language"])
 
+        self.thread_lock.acquire()
         self.update_ui()
+        self.thread_lock.release()
+    
+    def change_update_interval(self, interval):
+        self.settings["update_interval"] = interval
+        self.save_settings()
+        # kill the timer thread and restart it
+        self.timer_thread.stop()
+        self.timer_thread = TimerThread(self.settings["update_interval"], self.update_weather)
+        self.timer_thread.start()
+        # update the update interval submenu
+        self.thread_lock.acquire()
+        self.create_menu()
+        self.thread_lock.release()
 
 
 if __name__ == "__main__":
-    # Ignore matplotlib Userwarning: 
-    # The figure layout has been changed to tight. 
+    # Ignore matplotlib Userwarning: The figure layout has been changed to tight. 
     warnings.filterwarnings("ignore", category=UserWarning)
     # Ignore: libpng warning: iCCP: known incorrect sRGB profile
     # I don't know how to ignore this warning. It's not a big deal.

@@ -1,7 +1,7 @@
 # city_prediction.py
 # Description: predict the city based on the user input
 import re
-from multi_lang_dict import *
+from assets.multi_lang_dict import *
 
 def predict_city(input_text: str, cities: dict, n_entries: int = 5, language: str = 'English') -> list:
     """
