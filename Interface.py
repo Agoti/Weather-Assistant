@@ -47,8 +47,8 @@ from utils.TimerThread import TimerThread
 # [x] Style and layout, font, color, etc. Window size, alignment, etc.
 # [x] Do not block the interface. Use multithreading and add a loading animation
 # [x] Error handling, when the city is not found, etc.
-# [] Up to date weather infomation
-# [] Detailed Comments, Report
+# [x] Up to date weather infomation
+# [Soon] Detailed Comments, Report
 ##########################################################################
 
 class Interface(object):
@@ -73,7 +73,7 @@ class Interface(object):
         self.master = master
         self.master.title(language_dict[self.settings["language"]]["title"])
         self.width = 800
-        self.height = 600
+        self.height = 700
         self.master.geometry("{}x{}".format(self.width, self.height))
         self.master.resizable(False, False)
         self.master.bind('<Button-1>', self.on_background_click)
@@ -127,7 +127,7 @@ class Interface(object):
         # self.right_frame.grid(row=0, column=1, sticky=tk.N+tk.S+tk.W+tk.E)
         self.right_frame.place(relx=self.left_frame_ratio, rely=0, relwidth=self.right_frame_ratio, relheight=1)
         # PLACE all the widgets in the right frame
-        self.rf_weights = [1, 2, 1, 1, 1, 3, 5, 1]
+        self.rf_weights = [1, 2, 1, 1, 1, 3, 8, 1]
         self.rf_ratios = [weight / sum(self.rf_weights) for weight in self.rf_weights]
         # City name and delete city button
         self.city_name_label = tk.Label(self.right_frame, text=self.weather_assistant.current_city)
@@ -175,6 +175,7 @@ class Interface(object):
         self.master.focus()
         self.master.update()
         self.update_ui()
+        self.timer_thread.start()
 
     ## ----- Callback functions ----- ##
 
@@ -479,6 +480,9 @@ class Interface(object):
             self.prediction_list = predict_city(text, self.weather_assistant.all_cities, language=self.settings["language"])
             for city in self.prediction_list:
                 display = city[language_alias_dict[self.settings["language"]]]["Name"]
+                state = city[language_alias_dict[self.settings["language"]]]["StateName"] if city['type'] == 'city' else None
+                country = city[language_alias_dict[self.settings["language"]]]["CountryName"]
+                display += ", " + state if state is not None and state != "None" else ""
                 self.city_listbox.insert(tk.END, display)
         else:
             self.city_listbox.delete(0, tk.END)
@@ -497,13 +501,11 @@ class Interface(object):
         
         self.thread_lock.acquire()
         self.weather_assistant.set_language(language_alias_dict[self.settings["language"]])
-        self.thread_lock.release()
 
         self.weather_scrollbox.set_language(self.settings["language"])
         self.warning_scrollbox.set_language(self.settings["language"])
         self.chart_scrollbox.set_language(self.settings["language"])
 
-        self.thread_lock.acquire()
         self.update_ui()
         self.thread_lock.release()
     

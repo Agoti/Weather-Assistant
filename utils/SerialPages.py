@@ -267,21 +267,35 @@ class Chart7DaysPage(SerialPage):
         y1_span = max(y1) - min(y2)
         for i in range(len(data)):
             y_offset_1 = 10 if y1_span and (y1[i] - min(y2)) / y1_span < 0.8 else -20
-            y_offset_2 = 10
+            y_offset_2 = -20 if y1_span and (y2[i] - min(y2)) / y1_span > 0.2 else 10
             self.ax.annotate(str(y1[i]) + "°C", (x[i], y1[i]), textcoords="offset points", xytext=(0, y_offset_1),
                              ha='center')
             self.ax.annotate(str(y2[i]) + "°C", (x[i], y2[i]), textcoords="offset points", xytext=(0, y_offset_2),
                              ha='center')
 
         # 设置横轴刻度标签
+        # 标签: 月-日\n 湿度, 风力
         x_labels = [data[i]['fxDate'][5:] for i in range(len(data))]
+        for i in range(len(data)):
+            x_labels[i] += "\n" + data[i]['textDay'] + "\n" + data[i]['humidity'] + "%\n" \
+                + data[i]['windDirDay'] + data[i]['windScaleDay'] + language_dict[self.language]['chart_wind_unit']
         self.ax.set_xticks(x)
         self.ax.set_xticklabels(x_labels)
+
+        # Tight layout
+        self.fig.tight_layout()
+        # Adjust the bottom and top of the subplots
+        self.fig.subplots_adjust(bottom=0.2, top=0.9)
+
+        # Title
+        self.title = language_dict[self.language]['7d_title']
+        self.ax.set_title(self.title)
 
         self.canvas.draw()
     
     def clear(self):
         self.ax.clear()
+        self.title = language_dict[self.language]['no_content']
         self.ax.set_title(self.title)
         self.ax.set_yticks([])
         self.canvas.draw()
@@ -326,14 +340,17 @@ class Chart24HoursPage(SerialPage):
         canvas_height = self.canvas.winfo_height()
         # Avoid scroll bar
         canvas_height = max(1, canvas_height - 20)
-        self.frame.config(width=canvas_width * 3, height=canvas_height)
-        self.fig_canvas.get_tk_widget().config(width=canvas_width * 3, height=canvas_height)
+        self.width_ratio = 4
+        self.frame.config(width=canvas_width * self.width_ratio, height=canvas_height)
+        self.fig_canvas.get_tk_widget().config(width=canvas_width * self.width_ratio, height=canvas_height)
         self.fig_canvas.draw()
         self.canvas.config(scrollregion=self.canvas.bbox("all"))
         
     def update(self, **kwargs):
         self.clear()
         self.update_size()
+        self.title = language_dict[self.language]['24h_title']
+        self.ax.set_title(self.title)
         self.ax.set_yticks([])
         # data is a list of dict
         data = kwargs['hourly']
@@ -346,16 +363,21 @@ class Chart24HoursPage(SerialPage):
             y_offset = 10 if span and (y1[i] - min(y1)) / span < 0.8 else -20
             self.ax.annotate(str(y1[i]) + "°C", (x[i], y1[i]), textcoords="offset points", xytext=(0, y_offset),
                              ha='center', color='red')
+
         x_labels = [data[i]['fxTime'][11:16] for i in range(len(data))]
+        for i in range(len(data)):
+            x_labels[i] += "\n" + data[i]['text'] + "\n" + data[i]['humidity'] + "%\n" \
+                + data[i]['windDir'] + data[i]['windScale'] + language_dict[self.language]['chart_wind_unit']
         self.ax.set_xticks(x)
         self.ax.set_xticklabels(x_labels)  # Rotate x-axis labels for better visibility
         self.fig.tight_layout()
-        self.fig.subplots_adjust(bottom=0.2, top=0.8)
+        self.fig.subplots_adjust(bottom=0.25, top=0.9)
         self.fig_canvas.draw()
 
     def clear(self):
         self.update_size()
         self.ax.clear()
+        self.title = language_dict[self.language]['no_content']
         self.ax.set_title(self.title)
         self.ax.set_yticks([])
         self.fig_canvas.draw()
@@ -405,7 +427,7 @@ class ChartRainPage(SerialPage):
     
     def clear(self):
         self.ax.clear()
-        self.ax.set_title("")
+        self.ax.set_title(language_dict[self.language]['no_content'])
         self.ax.set_yticks([])
         self.canvas.draw()
     
