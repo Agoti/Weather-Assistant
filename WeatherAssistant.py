@@ -2,6 +2,7 @@
 # Description: Weather Assistant class to manage weather infomation
 #     This is the controller of the program
 # By Monster Kid
+
 from GetWeather import *
 import concurrent.futures
 
@@ -17,17 +18,31 @@ class WeatherAssistant(object):
 
     # the file to store city list
     CITIES_FILE = 'data/cities.txt' 
+    # the file to store all cities (around the world)
     ALL_CITY = 'data/all_city.csv'
+    # empty weather information dictionary
     EMPTY_WEATHER_DICT = {'now' : None, '7d' : None, '24h' : None, 'rain' : None, 'warning' : None, 'indices' : None,
                       'air' : None, 'air_forecast' : None}
 
-    def __init__(self, language='en', do_not_update=False):
+    def __init__(self, language: str = 'en', do_not_update: bool = False):
+        """
+        Initialize WeatherAssistant
+            :param language: language of the weather infomation
+            :param do_not_update: whether to update weather infomation after initialization
+        """
+    
+        # Initialize GetWeather
         self.get_weather = GetWeather(language)
+        # set language of self and get_weather
         self.language = language
+        self.set_language(language)
+        # load city list
         self.cities, self.current_city = self.load_cities()
+        # load all cities
         self.all_cities = self.load_all_cities()
-        self.language = 'en'
+        # initialize weather information
         self.weather = self.EMPTY_WEATHER_DICT
+        # update weather information
         if not do_not_update:
             self.update_weather()
 
@@ -36,9 +51,13 @@ class WeatherAssistant(object):
         Set language
         """
         try:
+            # set new language
             self.language = language
+            # set language of get_weather
             self.get_weather.set_hf_language(language)
+            # update weather, since language changed
             self.update_weather()
+
             return "success"
         except ValueError as e:
             return str(e)
@@ -51,14 +70,18 @@ class WeatherAssistant(object):
         Load cities from city file
         """
         try:
+            # cities: a list of cities which user added
             cities = []
+            # current_city: the current city whose weather is displayed
             current_city = None
+            # read cities from cities file
             with open(WeatherAssistant.CITIES_FILE, 'r', encoding='utf-8') as f:
                 for line in f:
                     city = line.strip()
                     cities.append(city)
                     if current_city is None:
                         current_city = city
+
             return cities, current_city
         except:
             return [], None
@@ -76,15 +99,17 @@ class WeatherAssistant(object):
             - Refer to cn_dict
         """
         try:
+            # all_cities: a dict {en_name: {'en': en_dict, 'zh': cn_dict}}
             cities = {}
             # keep track of the state
             state = set()
+            # read cities from all cities file
             with open(WeatherAssistant.ALL_CITY, 'r', encoding='utf-8') as f:
                 # skip the first line
                 next(f)
                 # Data come this order: EnglishName,
                 # ChineseName,StateName,StateNameEn,CountryName,CountryNameEn
-                # store the data in a 3-tuple: (EnglishName, CNInfo_dict, ENInfo_dict)
+                # Decode the line and add to all_cities
                 for line in f:
                     line = line.strip()
                     line = line.split(',')
@@ -97,7 +122,7 @@ class WeatherAssistant(object):
                         'StateName': line[3],
                         'CountryName': line[5]
                     }, 'type': 'city'}
-                    # add state to city list
+                    # if state is not tracked, add it to all_cities
                     if temp['zh']['StateName'] and temp['zh']['StateName'] not in state:
                         state.add(temp['zh']['StateName'])
                         temp_province = {
@@ -112,6 +137,7 @@ class WeatherAssistant(object):
                         cities[temp['en']['StateName']] = temp_province
                     
                     cities[temp['en']['Name']] = temp
+
             return cities
         except Exception as e:
             print(e)
@@ -122,6 +148,7 @@ class WeatherAssistant(object):
         Save cities to city file
         """
         try:
+            # write cities to cities file
             with open(WeatherAssistant.CITIES_FILE, 'w') as f:
                 for city in self.cities:
                     f.write(city + '\n')
@@ -133,16 +160,23 @@ class WeatherAssistant(object):
         Add a city to city list
         """
         try:
+            # check if city_name is valid
             if city_name not in self.all_cities:
                 return "unknown_city"
+            # check if city_name is already in city list
             if city_name in self.cities:
                 return "city_in_list"
+            # add it to city list
             self.cities.append(city_name)
+            # shift to the new city
             res = self.shift_city(city_name)
+            # if shift failed, remove the city from city list
             if res != "success":
                 self.cities.pop()
                 return res
+            # save city list to file
             self.save_cities()
+
             return "success"
         except:
             return "unknown_error"
@@ -152,11 +186,16 @@ class WeatherAssistant(object):
         Remove a city from city list
         """
         try:
+            # check if city_name is None
             if city_name is None:
                 return "no_city"
+            # get the index of city_name in city list
             idx = self.cities.index(city_name)
+            # if city_name is in city list, remove it
             if idx != -1:
                 self.cities.remove(city_name)
+                # shift to the next city and update weather
+                # check if the last city is removed
                 if len(self.cities) == 0:
                     self.current_city = None
                     self.update_weather()
@@ -165,8 +204,12 @@ class WeatherAssistant(object):
                     if res != "success":
                         self.cities.append(city_name)
                         return res
+
+            # save city list to file
             self.save_cities()
+
             return "success"
+
         except Exception as e:
             return "unknown_error"
 
@@ -175,12 +218,14 @@ class WeatherAssistant(object):
         Shift current city
         """
         try:
-            # Retrieve city in all_cities
+            # check if city_name is in city list
             if city_name not in self.cities:
                 return "city_not_in_list"
+            # update current city, file and weather
             self.current_city = city_name
             self.save_cities()
             self.update_weather()
+
             return "success"
         except:
             return "unknown_error"
@@ -190,10 +235,17 @@ class WeatherAssistant(object):
         Update current and forecast weather
         """
         try:
+            # reset weather dict
             self.weather = self.EMPTY_WEATHER_DICT
+
+            # check if current city is None
             if self.current_city is None:
                 return
+
+            # get city id, latitude and longitude
             city = self.get_weather.get_hf_location(self.current_city)
+            if city is None:
+                return self.EMPTY_WEATHER_DICT
             idx = city['id']
             lat = city['lat']
             lon = city['lon']
@@ -210,18 +262,20 @@ class WeatherAssistant(object):
                 lambda: self.get_weather.get_hf_air_forecast(idx)
             ]
 
+            # Execute all api functions
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 results = list(executor.map(lambda func: func(), api_functions))
 
+            # Update weather dict
             keys = ['now', '7d', '24h', 'rain', 'warning', 'indices', 'air', 'air_forecast']
             for i in range(len(results)):
                 self.weather[keys[i]] = results[i]
 
         except Exception as e:
-            # print(e)
-            # print("Update weather failed")
             self.weather = self.EMPTY_WEATHER_DICT
 
+
+# Test
 if __name__ == '__main__':
     
     def print_weather(wa):

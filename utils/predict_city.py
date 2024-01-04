@@ -1,5 +1,7 @@
 # city_prediction.py
 # Description: predict the city based on the user input
+# By Monster Kid
+
 import re
 from assets.multi_lang_dict import *
 
@@ -51,6 +53,8 @@ def predict_city(input_text: str, cities: dict, n_entries: int = 5, language: st
 
     return match_list
 
+
+# test cases
 if __name__ == '__main__':
     from WeatherAssistant import WeatherAssistant
     # load city list

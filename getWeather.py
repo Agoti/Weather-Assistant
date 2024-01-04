@@ -40,12 +40,19 @@ class GetWeather(object):
     HF_KEY = '55c7da0804024e868a70beb00fcd8c03'
 
     def __init__(self, language: str = 'en'):
+        """
+        Init GetWeather class
+        Parameters:
+            :param language: language(str)
+        """
 
-        # OpenWeather API
+        # OpenWeather API URL(deprecated)
         self.ow_url_current = self.OW_URL_CURRENT + 'appid=' + self.OW_KEY
         self.ow_url_forecast = self.OW_URL_FORECAST + 'appid=' + self.OW_KEY
-        # HeFeng API
+
+        # Concatenate URL with developer key(actually redundant, because set_hf_language will concatenate URL again)
         self.hf_language = language
+        self.hf_url_location = self.HF_URL_LOCATION + 'key=' + self.HF_KEY
         self.hf_url_current = self.HF_URL_CURRENT + 'key=' + self.HF_KEY
         self.hf_url_7days = self.HF_URL_7DAYS + 'key=' + self.HF_KEY
         self.hf_url_24hours = self.HF_URL_24HOURS + 'key=' + self.HF_KEY
@@ -54,19 +61,23 @@ class GetWeather(object):
         self.hf_url_indices = self.HF_URL_INDICES + 'key=' + self.HF_KEY
         self.hf_url_air = self.HF_URL_AIR + 'key=' + self.HF_KEY
         self.hf_url_air_forecast = self.HF_URL_AIR_FORECAST + 'key=' + self.HF_KEY
+        # set language
         self.set_hf_language(language)
     
     ## --- Set language --- ##
 
     def set_hf_language(self, language: str):
         """
-        Set language of HeFeng API
+        Set language of HeFeng API, change URL accordingly
         Parameters:
             :param language: language(str)
         """
+        # check language
         if language not in ['zh', 'en']:
             raise ValueError('Language must be "zh" or "en"')
+        # set language
         self.hf_language = language
+        # concatenate URL with language
         self.hf_url_current = self.HF_URL_CURRENT + 'key=' + self.HF_KEY + '&lang=' + self.hf_language
         self.hf_url_7days = self.HF_URL_7DAYS + 'key=' + self.HF_KEY + '&lang=' + self.hf_language
         self.hf_url_24hours = self.HF_URL_24HOURS + 'key=' + self.HF_KEY + '&lang=' + self.hf_language
@@ -75,7 +86,6 @@ class GetWeather(object):
         self.hf_url_indices = self.HF_URL_INDICES + 'key=' + self.HF_KEY + '&lang=' + self.hf_language
         self.hf_url_air = self.HF_URL_AIR + 'key=' + self.HF_KEY + '&lang=' + self.hf_language
         self.hf_url_air_forecast = self.HF_URL_AIR_FORECAST + 'key=' + self.HF_KEY + '&lang=' + self.hf_language
-        
 
     ## --- GET request --- ##
 
@@ -97,7 +107,7 @@ class GetWeather(object):
         response = requests.get(url)
         # decode the response
         data = response.json()
-        # data = self.format_current_weather(data)
+
         return data 
 
     def get_ow_forecast(self, city_name: str) -> dict:
@@ -116,7 +126,7 @@ class GetWeather(object):
         response = requests.get(url)
         # decode the response
         data = response.json()
-        # data = self.format_forecast_weather(data)
+
         return data
 
     ## HeFeng API ##
@@ -131,14 +141,16 @@ class GetWeather(object):
         """
 
         # create request url
-        url = self.HF_URL_LOCATION + 'key=' + self.HF_KEY + '&location=' + location
+        url = self.hf_url_location + '&location=' + location
         # GET request
         response = requests.get(url)
         # decode the response
         data = response.json()
-        # data = self.format_location(data)
+        # check if the request is successful, if not return None
         if data['code'] != '200':
             return None
+
+        # response is a list of location sorted by priority, return the first one
         return data["location"][0]
 
     def get_hf_current(self, id: str) -> dict:
@@ -160,6 +172,7 @@ class GetWeather(object):
         response = requests.get(url)
         # decode the response
         data = response.json()
+
         return data
 
     def get_hf_7days(self, id: str) -> dict:
@@ -181,6 +194,7 @@ class GetWeather(object):
         response = requests.get(url)
         # decode the response
         data = response.json()
+
         return data
     
     def get_hf_24hours(self, id: str) -> dict:
@@ -202,6 +216,7 @@ class GetWeather(object):
         response = requests.get(url)
         # decode the response
         data = response.json()
+
         return data
 
     def get_hf_rain(self, lat: str, lon: str) -> dict:
@@ -227,6 +242,7 @@ class GetWeather(object):
         response = requests.get(url)
         # decode the response
         data = response.json()
+
         return data
 
     def get_hf_warning(self, id: str) -> dict:
@@ -248,6 +264,7 @@ class GetWeather(object):
         response = requests.get(url)
         # decode the response
         data = response.json()
+
         return data
 
     def get_hf_indices(self, id: str) -> dict:
@@ -269,6 +286,7 @@ class GetWeather(object):
         response = requests.get(url)
         # decode the response
         data = response.json()
+
         return data
 
     def get_hf_air(self, id: str) -> dict:
@@ -290,6 +308,7 @@ class GetWeather(object):
         response = requests.get(url)
         # decode the response
         data = response.json()
+
         return data
 
     def get_hf_air_forecast(self, id: str) -> dict:
@@ -311,9 +330,12 @@ class GetWeather(object):
         response = requests.get(url)
         # decode the response
         data = response.json()
+
         return data
 
     
+## --- Test --- ##
+
 if __name__ == '__main__':
     gw = GetWeather()
     data1 = gw.get_ow_current('Sydney')

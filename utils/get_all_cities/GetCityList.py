@@ -1,6 +1,7 @@
 # GetCityList.py
 # Description: Get city list from xml file
 # By Monster Kid
+
 import xml.etree.ElementTree as ET
 
 def parse_xml(xml_file):

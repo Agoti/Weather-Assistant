@@ -1,4 +1,8 @@
+# multi_lang_dict.py
+# Description: the language dictionary and other translation related stuff
+# By Monster Kid
 
+# The language dictionary
 language_dict = {
     'English': {
         'title': 'Weather Assistant',
@@ -120,16 +124,19 @@ language_dict = {
     }
 }    
 
+# The language alias dictionary
 language_alias_dict = {
     'English': 'en',
     'Chinese': 'zh',
 }
 
+# The language index dictionary(did not use)
 language_idx_dict = {
     'English': 1,
     'Chinese': 2,
 }
 
+# The seconds to natural language dictionary
 sec2natural_dict = {
     10: '10_seconds',
     300: '5_minutes',
